@@ -1,0 +1,106 @@
+:root {
+  --bg-dark: #090C10;
+  --bg-card: #121824;
+  --bg-card-hover: #1A2234;
+  --border: rgba(255, 255, 255, 0.09);
+  --text-main: #F1F5F9;
+  --text-muted: #94A3B8;
+  --accent-cyan: #00F2FE;
+  --accent-blue: #3B82F6;
+  --accent-indigo: #6366F1;
+  --gain: #10B981;
+  --loss: #EF4444;
+  --font-sans: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  background-color: var(--bg-dark);
+  color: var(--text-main);
+  font-family: var(--font-sans);
+  min-height: 100vh;
+  overflow-x: hidden;
+  line-height: 1.5;
+}
+
+/* Glassmorphism utility */
+.glass {
+  background: rgba(18, 24, 36, 0.75);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid var(--border);
+}
+
+.glass-pill {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--border);
+  backdrop-filter: blur(8px);
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: var(--bg-dark);
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+/* Markdown formatting in chat */
+.prose-atlas h3 {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #FFFFFF;
+  margin-bottom: 0.5rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  padding-bottom: 0.25rem;
+}
+
+.prose-atlas table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 0.75rem 0;
+  font-size: 0.875rem;
+}
+
+.prose-atlas th, .prose-atlas td {
+  padding: 0.5rem 0.75rem;
+  text-align: left;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.prose-atlas th {
+  color: var(--text-muted);
+  font-weight: 600;
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.prose-atlas a {
+  color: var(--accent-cyan);
+  text-decoration: none;
+}
+.prose-atlas a:hover {
+  text-decoration: underline;
+}
+
+@keyframes pulseGlow {
+  0%, 100% { opacity: 0.4; }
+  50% { opacity: 0.9; }
+}
+
+.animate-pulse-glow {
+  animation: pulseGlow 2s infinite ease-in-out;
+}

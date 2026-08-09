@@ -16,7 +16,7 @@ from backend.db import repo
 from backend.agent.core import handle_user_message
 from backend.bot import handlers
 from backend.scheduler.jobs import register_jobs
-from backend.services import market, sectors, integrations, proactive, edgar
+from backend.services import market, sectors, integrations, proactive, edgar, doc_intelligence
 from backend.services.integrations import PlatformIntegrationHub
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(name)s: %(message)s")
@@ -287,6 +287,109 @@ def add_or_update_holding(req: HoldingRequest):
     repo.add_fact(user.id, f"User holds {req.shares:g} shares of {req.ticker.upper()}")
     repo.add_to_watchlist(user.id, req.ticker)
     return {"status": "success", "holding": {"ticker": holding.ticker, "shares": holding.shares, "avg_cost": holding.avg_cost}}
+
+# --- Document & Report Intelligence API ---
+class DocumentUploadRequest(BaseModel):
+    telegram_id: Optional[int] = 1001
+    filename: str
+    content: str
+    kind: Optional[str] = "report"
+
+@app.post("/api/documents/upload")
+def upload_document_api(req: DocumentUploadRequest):
+    """Ingests financial reports, 10-Ks, investment decks, or earnings transcripts for conversational intelligence."""
+    user = repo.get_or_create_user(req.telegram_id, "Analyst")
+    doc = repo.save_document(user.id, req.kind or "report", req.filename, req.content)
+    repo.add_fact(user.id, f"Uploaded document for analysis: '{req.filename}'")
+    
+    # Generate automatic initial executive summary
+    summary = doc_intelligence.generate_executive_summary(req.content, req.filename)
+    return {
+        "status": "success",
+        "document": {
+            "id": doc.id,
+            "name": doc.name,
+            "kind": doc.kind,
+            "char_count": len(doc.content),
+            "created_at": doc.created_at.strftime("%Y-%m-%d %H:%M:%S") if doc.created_at else ""
+        },
+        "executive_summary": summary
+    }
+
+@app.get("/api/documents/{tg_id}")
+def get_user_documents_api(tg_id: int):
+    """Returns list of uploaded financial reports, decks, and active documents for the user."""
+    user = repo.get_or_create_user(tg_id, "Analyst")
+    docs = repo.get_all_documents(user.id)
+    active = repo.active_document(user.id)
+    return {
+        "active_document": {
+            "id": active.id,
+            "name": active.name,
+            "kind": active.kind,
+            "char_count": len(active.content),
+            "created_at": active.created_at.strftime("%Y-%m-%d %H:%M:%S") if active.created_at else ""
+        } if active else None,
+        "documents": [
+            {
+                "id": d.id,
+                "name": d.name,
+                "kind": d.kind,
+                "active": d.active,
+                "char_count": len(d.content),
+                "created_at": d.created_at.strftime("%Y-%m-%d %H:%M:%S") if d.created_at else ""
+            }
+            for d in docs
+        ]
+    }
+
+class DocumentAnalysisRequest(BaseModel):
+    telegram_id: Optional[int] = 1001
+    mode: Optional[str] = "summary"  # "summary", "risks", "guidance", "financials"
+    custom_question: Optional[str] = None
+
+@app.post("/api/documents/analyze")
+def analyze_active_document_api(req: DocumentAnalysisRequest):
+    """Runs targeted financial intelligence modes on the active uploaded document."""
+    user = repo.get_or_create_user(req.telegram_id, "Analyst")
+    active = repo.active_document(user.id)
+    if not active:
+        raise HTTPException(status_code=404, detail="No active document found. Please upload a report or deck first.")
+    
+    if req.custom_question:
+        result = doc_intelligence.answer_conversational_doc_query(active.content, req.custom_question)
+    elif req.mode == "risks":
+        result = doc_intelligence.extract_risk_factors(active.content, active.name)
+    else:
+        result = doc_intelligence.generate_executive_summary(active.content, active.name)
+        
+    return {
+        "document_name": active.name,
+        "mode": req.mode,
+        "analysis": result
+    }
+
+class DocumentCompareRequest(BaseModel):
+    telegram_id: Optional[int] = 1001
+    doc1_id: Optional[int] = None
+    doc2_id: Optional[int] = None
+
+@app.post("/api/documents/compare")
+def compare_documents_api(req: DocumentCompareRequest):
+    """Compares two uploaded financial reports or earnings decks for delta shifts and margin trajectory."""
+    user = repo.get_or_create_user(req.telegram_id, "Analyst")
+    docs = repo.get_all_documents(user.id, limit=2)
+    if len(docs) < 2:
+        raise HTTPException(status_code=400, detail="Please upload at least two documents to perform a comparative analysis.")
+    
+    doc1 = docs[0]
+    doc2 = docs[1]
+    comparison = doc_intelligence.compare_two_reports(doc1.content, doc2.content, doc1.name, doc2.name)
+    return {
+        "doc1": doc1.name,
+        "doc2": doc2.name,
+        "comparison": comparison
+    }
 
 # --- Financial Sectors API ---
 @app.get("/api/sectors")

@@ -217,6 +217,15 @@ def _run_agent_sync(user, incoming_text: str) -> str:
     if watchlist:
         context_lines.append(f"User Watchlist: {', '.join(watchlist)}")
 
+    # Active Uploaded Document Context (Annual Reports, Earnings Decks, Pitch Decks, Financial Statements)
+    active_doc = repo.active_document(user.id)
+    if active_doc:
+        doc_snippet = active_doc.content[:30000]
+        context_lines.append(
+            f"ACTIVE LOADED FINANCIAL DOCUMENT ({active_doc.kind.upper()}: '{active_doc.name}'):\n"
+            f"\"\"\"\n{doc_snippet}\n\"\"\""
+        )
+
     # Add SEC Filings context if relevant
     if re.search(r"\b(filing|filings|10-k|10-q|8-k|sec filing|annual report|edgar|risk|risks)\b", text_lower):
         target_sec = active_ticker or "NVDA"

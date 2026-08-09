@@ -87,6 +87,13 @@ export default function App() {
   const [showTokenModal, setShowTokenModal] = useState(false);
   const [showSectorsModal, setShowSectorsModal] = useState(false);
   const [showIntegrationsModal, setShowIntegrationsModal] = useState(false);
+  const [showDocModal, setShowDocModal] = useState(false);
+  const [activeDoc, setActiveDoc] = useState(null);
+  const [docList, setDocList] = useState([]);
+  const [docTitle, setDocTitle] = useState('');
+  const [docContent, setDocContent] = useState('');
+  const [docLoading, setDocLoading] = useState(false);
+  const [docFeedback, setDocFeedback] = useState('');
   const [sectorsList, setSectorsList] = useState([]);
   const [integrationsList, setIntegrationsList] = useState([]);
   const [discordWebhookUrl, setDiscordWebhookUrl] = useState('');
@@ -109,6 +116,7 @@ export default function App() {
     fetchRedisStatus();
     fetchSectors();
     fetchIntegrations();
+    fetchDocuments();
 
     const timer = setInterval(() => {
       setLiveTime(new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }));
@@ -116,6 +124,123 @@ export default function App() {
 
     return () => clearInterval(timer);
   }, []);
+
+  const fetchDocuments = async () => {
+    try {
+      const res = await fetch(`${API_BASE}/api/documents/${telegramId}`);
+      if (res.ok) {
+        const data = await res.json();
+        setActiveDoc(data.active_document);
+        setDocList(data.documents || []);
+      }
+    } catch (e) {
+      console.error("Fetch docs error", e);
+    }
+  };
+
+  const handleUploadDoc = async (titleToUse = docTitle, contentToUse = docContent) => {
+    if (!contentToUse.trim()) return;
+    setDocLoading(true);
+    setDocFeedback('Ingesting and parsing financial report...');
+    try {
+      const res = await fetch(`${API_BASE}/api/documents/upload`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          telegram_id: telegramId,
+          filename: titleToUse.trim() || 'Annual_Report_2026.pdf',
+          content: contentToUse.trim(),
+          kind: 'report'
+        })
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setDocFeedback('✅ Document successfully parsed & loaded!');
+        setActiveDoc(data.document);
+        setDocTitle('');
+        setDocContent('');
+        fetchDocuments();
+        
+        // Add executive summary directly into chat conversation
+        const botMsg = {
+          id: Date.now().toString(),
+          sender: 'bot',
+          channel: 'document_intelligence',
+          content: data.executive_summary,
+          intent: 'document_summary',
+          sources: [`Loaded Document: ${data.document.name}`],
+          timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+        };
+        setMessages(prev => [...prev, botMsg]);
+      }
+    } catch (e) {
+      setDocFeedback(`❌ Error: ${e.message}`);
+    } finally {
+      setDocLoading(false);
+    }
+  };
+
+  const handleAnalyzeDocMode = async (mode = 'summary', question = null) => {
+    setDocLoading(true);
+    try {
+      const res = await fetch(`${API_BASE}/api/documents/analyze`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          telegram_id: telegramId,
+          mode: mode,
+          custom_question: question
+        })
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setShowDocModal(false);
+        const botMsg = {
+          id: Date.now().toString(),
+          sender: 'bot',
+          channel: 'document_intelligence',
+          content: data.analysis,
+          intent: `document_${mode}`,
+          sources: [`Report: ${data.document_name}`],
+          timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+        };
+        setMessages(prev => [...prev, botMsg]);
+      }
+    } catch (e) {
+      alert(`Error analyzing document: ${e.message}`);
+    } finally {
+      setDocLoading(false);
+    }
+  };
+
+  const handleCompareDocs = async () => {
+    setDocLoading(true);
+    try {
+      const res = await fetch(`${API_BASE}/api/documents/compare`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ telegram_id: telegramId })
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setShowDocModal(false);
+        const botMsg = {
+          id: Date.now().toString(),
+          sender: 'bot',
+          channel: 'document_comparison',
+          content: data.comparison,
+          intent: 'document_comparison',
+          sources: [`Comparative Delta: ${data.doc1} vs ${data.doc2}`],
+          timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+        };
+        setMessages(prev => [...prev, botMsg]);
+      }
+    } catch (e) {
+      alert(`Error comparing reports: ${e.message}`);
+    } finally {
+      setDocLoading(false);
+    }
+  };
 
   const fetchSectors = async () => {
     try {
@@ -522,6 +647,29 @@ export default function App() {
             <span>Platform Hub</span>
           </button>
 
+          {/* Document & Report Intelligence Button */}
+          <button 
+            onClick={() => { fetchDocuments(); setShowDocModal(true); }}
+            className="glass-pill"
+            style={{ 
+              padding: '0.45rem 0.9rem', 
+              borderRadius: '8px', 
+              border: '1px solid rgba(59, 130, 246, 0.4)', 
+              background: 'rgba(59, 130, 246, 0.15)',
+              color: '#93C5FD', 
+              cursor: 'pointer', 
+              display: 'flex', 
+              alignItems: 'center', 
+              gap: '0.4rem', 
+              fontSize: '0.8rem', 
+              fontWeight: 600 
+            }}
+            title="Analyze Annual Reports (10-K), Earnings Decks, SEC Filings & Due Diligence"
+          >
+            <FileText size={14} color="#60A5FA" />
+            <span>Reports & Decks {activeDoc ? `(${activeDoc.name.slice(0, 12)}...)` : ''}</span>
+          </button>
+
           <button 
             onClick={() => triggerDailyBrief(false)}
             className="glass-pill"
@@ -806,6 +954,157 @@ export default function App() {
               >
                 Connect Live Bot
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Financial Reports & Document Intelligence Modal */}
+      {showDocModal && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(10px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100, padding: '2rem' }}>
+          <div className="glass" style={{ width: '850px', maxHeight: '88vh', display: 'flex', flexDirection: 'column', borderRadius: '16px', border: '1px solid rgba(59, 130, 246, 0.3)', background: '#0F131D', overflow: 'hidden' }}>
+            <div style={{ padding: '1.25rem 1.5rem', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+                <FileText size={22} color="#60A5FA" />
+                <div>
+                  <h2 style={{ fontSize: '1.15rem', fontWeight: 800 }}>Document & Report Intelligence Engine</h2>
+                  <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Conversational analysis for Annual Reports (10-K), Earnings Presentations, Investment Decks & SEC Filings</p>
+                </div>
+              </div>
+              <button 
+                onClick={() => setShowDocModal(false)}
+                style={{ background: 'transparent', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', fontSize: '1.2rem', fontWeight: 700 }}
+              >
+                ✕
+              </button>
+            </div>
+
+            <div style={{ padding: '1.5rem', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+              
+              {/* Active Document Status */}
+              {activeDoc ? (
+                <div style={{ padding: '1rem 1.25rem', borderRadius: '12px', background: 'rgba(59, 130, 246, 0.1)', border: '1px solid rgba(59, 130, 246, 0.3)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.25rem' }}>
+                      <span style={{ fontSize: '0.65rem', padding: '0.15rem 0.45rem', borderRadius: '4px', background: '#3B82F6', color: '#FFF', fontWeight: 700, textTransform: 'uppercase' }}>
+                        Active Report
+                      </span>
+                      <h3 style={{ fontSize: '0.95rem', fontWeight: 700, color: '#FFF' }}>{activeDoc.name}</h3>
+                    </div>
+                    <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                      {(activeDoc.char_count || 0).toLocaleString()} characters loaded · Parsed into conversational memory
+                    </span>
+                  </div>
+
+                  {/* 1-Click Institutional Actions */}
+                  <div style={{ display: 'flex', gap: '0.5rem' }}>
+                    <button
+                      onClick={() => handleAnalyzeDocMode('summary')}
+                      disabled={docLoading}
+                      style={{ padding: '0.45rem 0.8rem', borderRadius: '6px', background: 'linear-gradient(135deg, #3B82F6, #1D4ED8)', border: 'none', color: '#FFF', fontSize: '0.75rem', fontWeight: 700, cursor: 'pointer' }}
+                    >
+                      📑 5-Pt Summary
+                    </button>
+                    <button
+                      onClick={() => handleAnalyzeDocMode('risks')}
+                      disabled={docLoading}
+                      style={{ padding: '0.45rem 0.8rem', borderRadius: '6px', background: 'rgba(239, 68, 68, 0.2)', border: '1px solid rgba(239, 68, 68, 0.4)', color: '#FCA5A5', fontSize: '0.75rem', fontWeight: 700, cursor: 'pointer' }}
+                    >
+                      ⚠️ Extract Risks
+                    </button>
+                    {docList.length >= 2 && (
+                      <button
+                        onClick={handleCompareDocs}
+                        disabled={docLoading}
+                        style={{ padding: '0.45rem 0.8rem', borderRadius: '6px', background: 'rgba(16, 185, 129, 0.2)', border: '1px solid rgba(16, 185, 129, 0.4)', color: '#6EE7B7', fontSize: '0.75rem', fontWeight: 700, cursor: 'pointer' }}
+                      >
+                        🔄 Compare Reports
+                      </button>
+                    )}
+                  </div>
+                </div>
+              ) : (
+                <div style={{ padding: '0.85rem 1rem', borderRadius: '8px', background: 'rgba(255,255,255,0.03)', border: '1px dashed var(--border)', fontSize: '0.8rem', color: 'var(--text-muted)', textAlign: 'center' }}>
+                  No financial report currently active. Ingest or paste a report below to begin conversational analysis.
+                </div>
+              )}
+
+              {/* Ingest / Paste Report Form */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <h4 style={{ fontSize: '0.85rem', fontWeight: 700, color: '#FFF' }}>Ingest Financial Report or Presentation</h4>
+                  
+                  {/* Sample Presets */}
+                  <div style={{ display: 'flex', gap: '0.4rem' }}>
+                    <button
+                      onClick={() => {
+                        setDocTitle("Tesla_Q2_2026_Earnings_Call.txt");
+                        setDocContent(`Tesla Q2 2026 Financial Results & Earnings Presentation:\n• Total Revenue: $25.5B (+8.4% YoY), driven by Megapack energy storage expansion and vehicle delivery stabilization.\n• Gross Margin: 18.2%, expanding 80 bps sequentially due to cost of goods sold per unit reductions.\n• Net Income: $2.45B; Adjusted EPS: $0.72 vs $0.65 consensus.\n• Operating Cash Flow: $3.8B; Free Cash Flow: $2.1B.\n• Energy Storage Deployments: 9.4 GWh in Q2 (record quarter).\n• Full Self-Driving (FSD) v13 rollout commenced across North American fleet.\n• Risk Factors: Automotive tariff uncertainties, commodity lithium price volatility, compute cluster CapEx ramp ($2.5B quarterly AI infrastructure spend), and Robotaxi regulatory clearance milestones.`);
+                      }}
+                      style={{ padding: '0.25rem 0.5rem', borderRadius: '4px', background: 'rgba(255,255,255,0.06)', border: '1px solid var(--border)', color: 'var(--accent-cyan)', fontSize: '0.7rem', cursor: 'pointer' }}
+                    >
+                      Preset: Tesla Earnings Deck
+                    </button>
+                    <button
+                      onClick={() => {
+                        setDocTitle("Microsoft_FY25_10K_Annual_Report.txt");
+                        setDocContent(`Microsoft Corporation Form 10-K Annual Report:\n• Total TTM Revenue: $245.1B (+15.2% YoY), with Microsoft Cloud generating $137B (+23% YoY).\n• Azure and other cloud services revenue grew 29% driven by enterprise AI consumption workloads.\n• Gross Margin: 69.8%; Operating Income: $109.4B (44.6% Operating Margin).\n• Capital Expenditures: $55.7B invested into datacenter infrastructure and GPU capacity.\n• Key Risk Factors: Substantial capital commitments in AI infrastructure before monetization maturity, global cybersecurity threats, antitrust scrutiny over multi-cloud licensing terms, and foreign exchange currency headwinds.`);
+                      }}
+                      style={{ padding: '0.25rem 0.5rem', borderRadius: '4px', background: 'rgba(255,255,255,0.06)', border: '1px solid var(--border)', color: '#A78BFA', fontSize: '0.7rem', cursor: 'pointer' }}
+                    >
+                      Preset: Microsoft 10-K
+                    </button>
+                  </div>
+                </div>
+
+                <input 
+                  type="text" 
+                  placeholder="Document Title (e.g. Apple_FY26_Q3_10Q.pdf or Due_Diligence_Deck.pdf)" 
+                  value={docTitle}
+                  onChange={(e) => setDocTitle(e.target.value)}
+                  style={{ width: '100%', padding: '0.6rem 0.85rem', borderRadius: '8px', border: '1px solid var(--border)', background: '#090C10', color: '#FFF', fontSize: '0.8rem' }}
+                />
+
+                <textarea
+                  rows={7}
+                  placeholder="Paste report text, 10-K MD&A section, earnings call transcript, or investment memo here..."
+                  value={docContent}
+                  onChange={(e) => setDocContent(e.target.value)}
+                  style={{ width: '100%', padding: '0.75rem', borderRadius: '8px', border: '1px solid var(--border)', background: '#090C10', color: '#FFF', fontSize: '0.8rem', fontFamily: 'var(--font-mono)', lineHeight: '1.4' }}
+                />
+
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <span style={{ fontSize: '0.75rem', color: docFeedback.includes('✅') ? '#34D399' : 'var(--text-muted)' }}>
+                    {docFeedback || 'Supports Annual Reports, 10-Qs, Pitch Decks & Research Notes.'}
+                  </span>
+
+                  <button
+                    onClick={() => handleUploadDoc(docTitle, docContent)}
+                    disabled={docLoading || !docContent.trim()}
+                    style={{ padding: '0.55rem 1.25rem', borderRadius: '8px', background: 'linear-gradient(135deg, #3B82F6, #1D4ED8)', border: 'none', color: '#FFF', fontWeight: 700, cursor: docLoading || !docContent.trim() ? 'not-allowed' : 'pointer', fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}
+                  >
+                    <FileText size={14} />
+                    <span>{docLoading ? 'Analyzing Report...' : 'Ingest & Generate Executive Summary'}</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Upload History */}
+              {docList.length > 0 && (
+                <div style={{ marginTop: '0.5rem' }}>
+                  <h4 style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-muted)', marginBottom: '0.5rem' }}>Recent Analyzed Reports in Local Database:</h4>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
+                    {docList.slice(0, 4).map((d) => (
+                      <div key={d.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.4rem 0.6rem', borderRadius: '6px', background: 'rgba(0,0,0,0.2)', fontSize: '0.75rem' }}>
+                        <span style={{ color: d.active ? 'var(--accent-cyan)' : 'var(--text-muted)', fontWeight: d.active ? 700 : 400 }}>
+                          📄 {d.name} {d.active && '(Active)'}
+                        </span>
+                        <span style={{ color: 'var(--text-muted)', fontSize: '0.7rem' }}>{d.created_at}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </div>

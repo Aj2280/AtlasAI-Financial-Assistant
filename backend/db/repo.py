@@ -145,6 +145,10 @@ def active_document(user_id: int) -> Optional[Document]:
     with SessionLocal() as db:
         return db.query(Document).filter(Document.user_id == user_id, Document.active == True).order_by(Document.created_at.desc()).first()
 
+def get_all_documents(user_id: int, limit: int = 10) -> List[Document]:
+    with SessionLocal() as db:
+        return db.query(Document).filter(Document.user_id == user_id).order_by(Document.created_at.desc()).limit(limit).all()
+
 def save_document(user_id: int, kind: str, name: str, content: str) -> Document:
     with SessionLocal() as db:
         # deactivate older docs

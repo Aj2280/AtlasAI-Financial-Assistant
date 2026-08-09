@@ -21,15 +21,23 @@ CHAT_MODEL = "llama-3.1-8b-instant"            # Groq: Fast, low-latency respons
 RESEARCH_MODEL = "llama-3.3-70b-versatile"     # Groq: Deep reasoning for comparisons, fundamentals
 CEREBRAS_FALLBACK = "gpt-oss-120b"             # Cerebras fallback
 
-SYSTEM_PROMPT = (
-    "You are Atlas, an elite institutional AI financial analyst on Telegram. "
-    "Deliver sharp, data-backed, high-conviction insights formatted strictly for executive readability.\n\n"
-    "Formatting Rules:\n"
-    "- Bold key numbers and tickers: *NVDA*, *+4.2%*, *$218.99*, *P/E 32x*, *75.3% margin*\n"
-    "- Use clean bullet points (•) for takeaways, drivers, and comparisons\n"
-    "- Give numbers and 'why it matters' context with zero generic conversational filler\n"
-    "- Always end with a sharp analyst takeaway"
-)
+SYSTEM_PROMPT = """You are Atlas, a friendly, perceptive, and highly experienced senior AI financial analyst colleague on Telegram and Web Terminal.
+You communicate warmly, intelligently, and clearly — like a trusted Wall Street peer who genuinely enjoys analyzing businesses and helping investors make smart decisions.
+
+## Conversational & Analytical Guidelines:
+1. Warm, Friendly & Colleague-Like: Speak naturally and conversationally. Treat the user as a valued peer. Never sound like a robotic FAQ or sterile database.
+2. Full Multilingual Intelligence: Seamlessly detect and respond in whatever language or dialect the user speaks (English, Hindi, Hinglish, Spanish, French, German, Japanese, Chinese, Arabic, Russian, Portuguese, Gujarati, Marathi, Tamil, Telugu, etc.). Maintain the exact same warm colleague tone, precise financial metrics, and thoughtful follow-up questions in that language.
+3. Real-Time Time & Timezone Awareness: You have real-time live clock and timezone awareness provided in the context. Use it accurately when asked about the time, date, market opening/closing schedules, and timezones.
+4. STRICT REAL-TIME DATA ADHERENCE: You are connected to live institutional data feeds (Finnhub, CoinGecko, Global Market Feeds, SEC EDGAR). ALWAYS use and quote the exact live real-time prices, 24h % changes, sparklines, market caps, and multiples provided in the context. Never state that you lack real-time data and never hallucinate outdated pre-training prices.
+5. Context & "Why It Matters": Explain the significance behind numbers (valuation multiples, catalysts, margins, growth rates) so the user gets actionable insight.
+6. Understand the User's Problem: Always end with a thoughtful, engaging question in the user's language to better understand the user's specific problem, investment horizon, strategy, or perspective (e.g., asking if they are evaluating entry points, comparing alternatives, managing risk, or preparing for earnings).
+7. Formatting:
+   - Bold key numbers, metrics, and tickers: **NVDA**, **+4.2%**, **$218.99**, **P/E 32x**, **75.3% gross margin**.
+   - Use clean bullet points (•) for drivers, takeaways, or comparisons.
+   - Never output raw HTML tags (<b>, <i>, <code>, <a>). Use standard Markdown.
+   - Do NOT address the user by name or guess/mention user names. Jump directly into the friendly, insightful conversation.
+   - Keep answers well-structured and easy to read without walls of dense text.
+"""
 
 class MultiModelRouter:
     _groq_client = None
@@ -41,12 +49,23 @@ class MultiModelRouter:
         return cls._groq_client
 
     @classmethod
-    def generate_analysis(cls, prompt: str, data_context: str = "", deep_research: bool = False) -> Dict[str, Any]:
-        """Routes to llama-3.3-70b-versatile (research) or llama-3.1-8b-instant (normal chat)."""
+    def generate_analysis(cls, prompt: str, data_context: str = "", chat_history: list = None, deep_research: bool = False) -> Dict[str, Any]:
+        """Routes to llama-3.3-70b-versatile (research) or llama-3.1-8b-instant (normal chat) with full multi-turn conversational memory."""
         target_model = RESEARCH_MODEL if deep_research else CHAT_MODEL
-        user_content = prompt
+        
+        system_content = SYSTEM_PROMPT
         if data_context:
-            user_content += f"\n\nLive Market & SEC Data:\n{data_context}"
+            system_content += f"\n\n## Live Market & SEC Data Context:\n{data_context}"
+
+        messages = [{"role": "system", "content": system_content}]
+        if chat_history:
+            for turn in chat_history:
+                r = "user" if turn.get("role") == "user" else "assistant"
+                c = (turn.get("content") or "").strip()
+                if c:
+                    messages.append({"role": r, "content": c})
+                    
+        messages.append({"role": "user", "content": prompt})
 
         # 1. Primary: Groq (llama-3.3-70b-versatile or llama-3.1-8b-instant)
         client = cls.get_groq_client()
@@ -54,10 +73,7 @@ class MultiModelRouter:
             try:
                 resp = client.chat.completions.create(
                     model=target_model,
-                    messages=[
-                        {"role": "system", "content": SYSTEM_PROMPT},
-                        {"role": "user", "content": user_content}
-                    ],
+                    messages=messages,
                     temperature=0.3,
                     max_tokens=850
                 )
@@ -84,10 +100,7 @@ class MultiModelRouter:
                     },
                     data=json.dumps({
                         "model": CEREBRAS_FALLBACK,
-                        "messages": [
-                            {"role": "system", "content": SYSTEM_PROMPT},
-                            {"role": "user", "content": user_content}
-                        ],
+                        "messages": messages,
                         "temperature": 0.3,
                         "max_tokens": 800
                     }).encode(),

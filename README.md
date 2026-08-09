@@ -1,14 +1,16 @@
 <div align="center">
 
-# 🏛️ Atlas: Institutional AI Financial Analyst
+# 🏛️ Atlas: Institutional AI Financial Assistant & Multi-Asset Terminal
 
-**Autonomous Multi-Model Financial Intelligence Engine for Telegram & Web Terminal**
+**Autonomous Multi-Model Financial Intelligence Engine for Telegram, Web Terminal, TradingView, Discord & Slack**
 
 [![Python 3.9+](https://img.shields.io/badge/Python-3.9%2B-blue.svg)](https://www.python.org/)
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.100%2B-009688.svg)](https://fastapi.tiangolo.com/)
+[![React + Vite](https://img.shields.io/badge/Frontend-React%2018%20%7C%20Vite-61DAFB.svg)](https://vitejs.dev/)
+[![Redis](https://img.shields.io/badge/Redis-L1%20Cache-DC382D.svg)](https://redis.io/)
 [![Telegram Bot](https://img.shields.io/badge/Telegram%20Bot-Active-2CA5E0.svg)](https://t.me/Atlas39bot)
-[![Groq](https://img.shields.io/badge/Groq-Llama%203.3%2070B-orange.svg)](https://groq.com/)
-[![Cerebras](https://img.shields.io/badge/Cerebras-Ultra%20Fast%20Inference-purple.svg)](https://cerebras.ai/)
+[![Groq Llama 3.3](https://img.shields.io/badge/Groq-Llama%203.3%2070B-orange.svg)](https://groq.com/)
+[![TradingView](https://img.shields.io/badge/TradingView-Webhooks%20Ready-2962FF.svg)](https://tradingview.com/)
 [![SEC EDGAR](https://img.shields.io/badge/SEC.gov-EDGAR%20Official-green.svg)](https://www.sec.gov/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
@@ -18,13 +20,13 @@
 
 ## 📌 Overview
 
-**Atlas** is a state-of-the-art autonomous financial analyst designed for hedge funds, equity researchers, and active retail investors. Built with a **Multi-Model Orchestration Architecture**, Atlas provides Wall-Street-grade equity research, multi-asset tracking, official SEC filing feeds, voice transcription, chart vision analysis, and proactive price alert monitoring directly inside **Telegram** and an interactive **Web Terminal**.
+**Atlas** is an institutional-grade autonomous financial assistant engineered for equity researchers, hedge funds, and active investors. Powered by a **Multi-Model Orchestration Engine**, Atlas delivers real-time market data across global asset classes, comprehensive sector rotation analytics, multi-turn conversational memory with local database persistence, official SEC EDGAR filing insights, voice transcription, chart vision analysis, and multi-platform connectivity (Telegram, Web Terminal, TradingView, Discord, Slack, and Excel/Google Sheets).
 
 ---
 
 ## 🤖 Multi-Model Specialization Architecture
 
-Atlas assigns distinct AI models to specific cognitive workloads for optimal latency, reasoning, and multi-modality:
+Atlas routes distinct financial cognitive workloads to specialized AI models for sub-second latency, deep analytical reasoning, and native multi-modality:
 
 ```
                                   Incoming Interaction
@@ -39,7 +41,7 @@ Atlas assigns distinct AI models to specific cognitive workloads for optimal lat
                                            │
                     ┌──────────────────────┴──────────────────────┐
                     │                                             │
-            Normal Fast Chat                              Deep Equity Research
+            Fast Conversational                           Deep Equity Research
                     │                                             │
          Groq llama-3.1-8b-instant                     Groq llama-3.3-70b-versatile
          Sub-second low latency                        Valuation, DCF & Catalysts
@@ -52,43 +54,70 @@ Atlas assigns distinct AI models to specific cognitive workloads for optimal lat
                                      (gpt-oss-120b)
 ```
 
-| Task / Domain | Designated Model | Provider | Key Capability |
+| Workload / Domain | Designated Model | Provider | Key Capability |
 |---|---|---|---|
-| **Normal Chat & Fast Q&A** | `llama-3.1-8b-instant` | **Groq** | Sub-second low-latency conversational answers |
-| **Research & Fundamental Analysis** | `llama-3.3-70b-versatile` | **Groq** | Deep reasoning, valuation multiples, peer comparisons |
-| **Voice Audio Transcription** | `whisper-large-v3` | **Groq** | Institutional voice note transcription |
-| **Chart & Vision Analysis** | `gemma-4-26b-a4b-it:free` | **OpenRouter** | Support / resistance levels and OCR table parsing |
-| **Instant Fallback Engine** | `gpt-oss-120b` | **Cerebras** | Automated fallback on rate limits or API caps |
+| **Fast Conversational Q&A** | `llama-3.1-8b-instant` | **Groq** | Sub-second low-latency financial dialogue |
+| **Deep Valuation & Fundamentals** | `llama-3.3-70b-versatile` | **Groq** | Multiples, peer comparisons, DCF models, catalysts |
+| **Voice Audio Transcription** | `whisper-large-v3` | **Groq** | Institutional voice note parsing with zero hallucinations |
+| **Chart Vision & OCR** | `gemma-4-26b-a4b-it:free` | **OpenRouter** | Support/resistance levels, trendline detection, table OCR |
+| **Failover Fallback Engine** | `gpt-oss-120b` | **Cerebras** | Automatic fallback during rate limits or upstream outages |
 
 ---
 
-## 🌟 Key Features
+## 🌟 Core System Capabilities
 
-### 1. 📊 Multi-Asset Real-Time Market Feeds & Sparklines
-- **US Equities**: Real-time quotes, OHLC, P/E multiples, and TTM Revenue (*NVDA*, *AAPL*, *MSFT*, *TSLA*, *GOOGL*, *AMZN*, *META*).
-- **Indian Equities & Indices**: Live prices for *Reliance*, *TCS*, *HDFC Bank*, *Infosys*, and *Nifty 50*.
-- **Crypto & Commodities**: *Bitcoin (BTC)*, *Ethereum (ETH)*, *Gold (XAU)*, *Crude Oil (Brent)*.
-- **Visual Sparklines**: Zero-latency ASCII/Unicode price trajectory charts rendered directly in Telegram:
+### 1. 📈 Live Multi-Asset Real-Time Market Feeds
+- **US Equities & Mega-Caps**: Real-time quotes, OHLC, trailing/forward P/E ratios, gross margins, and TTM revenue (`NVDA`, `AAPL`, `MSFT`, `PLTR`, `TSLA`, `AMD`, `AMZN`, `META`, `GOOGL`).
+- **Indian Equities & Indices**: Live NSE/BSE quotes in Indian Rupees (₹) (`RELIANCE`, `TCS`, `HDFCBANK`, `INFY`, `NIFTY 50`, `SENSEX`).
+- **Cryptocurrencies**: Live 24/7 streaming prices with 24h percentage changes (`Bitcoin`, `Ethereum`, `Solana`, `Dogecoin`, `XRP`, `Cardano`).
+- **Commodities & Forex**: Real-time spot and futures tracking (`Gold Spot XAU`, `Silver XAG`, `Crude Oil WTI/Brent`, `US Dollar Index DXY`, `US 10-Yr Treasury Yield ^TNX`).
+- **ASCII Sparklines**: Zero-latency visual price trajectory charts rendered directly in chat:
   `NVDA [  ▂▃▅▇█ 🟢] $223.96 (+2.27%)`
 
-### 2. 📄 Official SEC EDGAR Submissions & CIK Mapping
-- Automated CIK lookup directly querying SEC.gov archive databases.
-- Instant access to recent **Form 10-K**, **10-Q**, and **8-K** filings with direct clickable archive links.
+### 2. 🌐 Comprehensive 13 Financial Sectors Heatmap Engine
+Tracks all **11 official GICS Sectors** plus Crypto & Macro with parallel async fetching and live sentiment classification:
+- **Information Technology (`XLK`)**
+- **Financials (`XLF`)**
+- **Health Care (`XLV`)**
+- **Energy (`XLE`)**
+- **Consumer Discretionary (`XLY`)**
+- **Consumer Staples (`XLP`)**
+- **Communication Services (`XLC`)**
+- **Industrials (`XLI`)**
+- **Materials (`XLB`)**
+- **Utilities (`XLU`)**
+- **Real Estate (`XLRE`)**
+- **Digital Assets & Crypto (`BTC`)**
+- **Macro & Broad Market (`SPX`)**
 
-### 3. 📑 Document & Google Sheets Extraction
-- **Google Sheets**: Public link ingestion (`docs.google.com/spreadsheets/d/...`) with statistical extraction of totals, margins, and anomalies.
-- **PyPDF Document Ingestion**: Multi-page equity research decks parsed and distilled into actionable takeaways.
+### 3. 🧠 Two-Tier Storage & Conversational Memory
+- **L1 In-Memory Redis Cache**: Low-latency caching for market quotes (30s TTL), fundamentals (1h TTL), sector summaries, session turns, and sliding-window rate limits.
+- **L2 SQLite Local Database**: Persistent storage for user profiles, auto-extracted portfolio holdings (`portfolio_holdings`), personal facts (`profile_facts`), historical market snapshots (`market_snapshots`), alerts, and documents.
 
-### 4. ⏰ Proactive APScheduler JobQueue
-- **Morning Market Briefs (`08:00`)**: Automated customized market overview sent directly to Telegram.
-- **Price Alert Watchers**: Scans asset thresholds every 5 minutes and pushes alerts when volatility hits ±5%.
-- **SEC Filing Monitors**: Hourly background watcher for new filings from watchlist tickers.
+### 4. 🌍 Full Multilingual Intelligence & Live Timezone Clock
+- **Native Multilingual Fluency**: Seamlessly communicates in English, Hindi, Hinglish, Spanish, French, German, Japanese, Chinese, Arabic, Portuguese, Russian, Gujarati, Marathi, Tamil, Telugu, and more.
+- **Real-Time Clock & Trading Hours**: Injects precise local clock and exchange operating schedules (NYSE, Nasdaq, NSE, BSE, TSE, LSE, 24/7 Crypto) into every analytical turn.
 
-### 5. 🛡️ Institutional Security & Compliance Engine
-- **Prompt Injection Defense**: Intercepts adversarial jailbreaks and system prompt extraction attacks.
-- **Secrets Redaction**: Output sanitization filters out API tokens, private keys, and environment variables.
-- **Rate Limiting**: Enforces 25 requests/min per user to prevent denial-of-service abuse.
-- **Compliance Disclaimers**: Automatically appends standard institutional research disclaimers.
+### 5. 🔗 Multi-Platform Integrations Hub
+- **Discord Server Webhooks**: Broadcast market updates, analyst memos, and portfolio alerts directly to Discord channels.
+- **Slack Workspace Webhooks**: Push real-time research and volatility alerts to team channels.
+- **TradingView Inbound Webhooks (`/api/webhooks/tradingview`)**: Receive Pine Script alerts (`BUY`/`SELL`/`TAKE_PROFIT`) to automatically log trades and trigger Telegram alerts.
+- **Google Sheets & Excel CSV Export (`/api/export/portfolio-csv`)**: One-click live export of holdings, cost bases, real-time valuations, and profit/loss calculations.
+
+### 6. 📄 Official SEC EDGAR Submissions
+- Direct automated CIK mapping and querying against official SEC.gov archives.
+- Instant retrieval of recent **Form 10-K**, **10-Q**, and **8-K** filings with direct clickable archive links.
+
+### 7. ⏰ Proactive APScheduler JobQueue
+- **Custom Morning Briefings (`08:00`)**: Tailored portfolio and market morning brief sent directly to Telegram.
+- **Volatility Alert Watchers**: Scans asset thresholds every 5 minutes and pushes alerts when volatility hits user-defined levels.
+- **SEC Filing Monitors**: Hourly background watcher for new regulatory filings from watchlist tickers.
+
+### 8. 🛡️ Institutional Security & Compliance Engine
+- **Prompt Injection Defense**: Intercepts jailbreaks and system prompt extraction attempts.
+- **Secrets Redaction**: Sanitizes API tokens, private keys, and environment variables from all outputs.
+- **Rate Limiting**: Enforces per-user sliding-window limits to prevent abuse.
+- **Research Disclaimers**: Automatically appends standard institutional compliance notices.
 
 ---
 
@@ -98,27 +127,35 @@ Atlas assigns distinct AI models to specific cognitive workloads for optimal lat
 atlas/
 ├── backend/
 │   ├── agent/
-│   │   ├── core.py              # Conversational financial analyst core loop
+│   │   ├── core.py              # Conversational financial analyst loop & context builder
 │   │   ├── prompts.py           # Institutional prompts & formatting guidelines
 │   │   └── tools.py             # Tool execution dispatcher
 │   ├── bot/
 │   │   └── handlers.py          # Telegram event handlers (Text, Voice, Photos, PDFs)
 │   ├── db/
-│   │   ├── models.py            # SQLAlchemy database models (User, Alert, Message, etc.)
-│   │   └── repo.py              # Repository CRUD operations
+│   │   ├── models.py            # SQLAlchemy database models (Users, Holdings, Snapshots, etc.)
+│   │   └── repo.py              # Repository CRUD & portfolio fact extraction
 │   ├── scheduler/
-│   │   └── jobs.py              # Proactive APScheduler JobQueue
+│   │   └── jobs.py              # Proactive APScheduler JobQueue (Briefings, Alerts)
 │   ├── services/
-│   │   ├── edgar.py             # Official SEC EDGAR filing fetcher
+│   │   ├── edgar.py             # Official SEC EDGAR filing fetcher & CIK resolver
+│   │   ├── integrations.py      # Platform Hub (Discord, Slack, TradingView, CSV)
 │   │   ├── llm_router.py        # Multi-model LLM router (Groq, Cerebras, OpenRouter)
-│   │   ├── market.py            # Live market quotes, sparklines & fundamentals
+│   │   ├── market.py            # Multi-asset live market quotes, sparklines & fundamentals
 │   │   ├── media.py             # Voice transcription (Whisper v3) & Vision analysis
 │   │   ├── news.py              # Finnhub company news & RSS feeds
 │   │   ├── pdf.py               # PyPDF text extraction
+│   │   ├── redis_service.py     # L1 Redis cache & rate-limiting service
+│   │   ├── sectors.py           # 13 Financial Sectors real-time engine & heatmap
 │   │   ├── security.py          # Prompt injection defense & rate limiting
 │   │   └── sheets.py            # Google Sheets CSV parser
-│   └── main.py                  # Unified FastAPI server + Telegram long-polling daemon
-├── frontend/                    # Vite + React interactive Web Terminal
+│   └── main.py                  # Unified FastAPI REST API + Telegram long-polling daemon
+├── frontend/                    # Vite + React 18 interactive Web Terminal
+│   ├── src/
+│   │   ├── App.jsx              # Main Terminal UI, Heatmap modal & Integrations Hub
+│   │   ├── index.css            # Dark-mode glassmorphism styling
+│   │   └── main.jsx             # React DOM entrypoint
+│   └── package.json             # Frontend dependencies
 ├── .gitignore                   # Excludes virtual environments, DBs, and secrets
 ├── requirements.txt             # Python backend dependencies
 └── README.md                    # Project documentation
@@ -126,11 +163,32 @@ atlas/
 
 ---
 
+## 🔌 REST API Reference
+
+| Method | Endpoint | Description |
+|---|---|---|
+| `POST` | `/api/chat` | Main conversational intelligence endpoint with multi-turn memory |
+| `GET` | `/api/time` | Real-time local clock and exchange trading schedules |
+| `GET` | `/api/sectors` | Performance overview across all 13 financial sectors |
+| `GET` | `/api/sectors/{sector_id}` | Deep-dive valuation, top holdings, and catalysts for a sector |
+| `GET` | `/api/sectors/rotation/summary`| Sector rotation momentum and capital flow summary |
+| `GET` | `/api/integrations` | Active external platform integration statuses |
+| `POST` | `/api/integrations/discord/test` | Test broadcast to Discord server webhook |
+| `POST` | `/api/integrations/slack/test` | Test broadcast to Slack workspace webhook |
+| `POST` | `/api/webhooks/tradingview` | Inbound TradingView Pine Script alert receiver |
+| `GET` | `/api/database/snapshots` | Real-time market snapshots persisted in SQLite |
+| `GET` | `/api/database/holdings` | User portfolio holdings and live valuations |
+| `GET` | `/api/export/portfolio-csv` | Download live portfolio holdings as CSV for Excel/Sheets |
+| `GET` | `/health` | Backend server & service health check |
+
+---
+
 ## 🚀 Quickstart Guide
 
 ### Prerequisites
-- Python 3.9 or higher
+- Python 3.9+
 - Node.js 18+ (for Web Terminal)
+- Redis server (optional, falls back gracefully to in-memory)
 - Telegram Bot Token from [@BotFather](https://t.me/BotFather)
 
 ### 1. Clone & Setup Backend
@@ -154,6 +212,8 @@ export GROQ_API_KEY="your_groq_api_key"
 export CEREBRAS_API_KEY="your_cerebras_api_key"
 export OPENROUTER_API_KEY="your_openrouter_api_key"
 export FINNHUB_API_KEY="your_finnhub_api_key"
+export REDIS_HOST="localhost"
+export REDIS_PORT="6379"
 ```
 
 ### 3. Launch Backend Server & Telegram Daemon
@@ -168,19 +228,20 @@ cd frontend
 npm install
 npm run dev
 ```
-*Access the Web UI at `http://127.0.0.1:3000`.*
+*Access the Web Terminal at `http://127.0.0.1:3000`.*
 
 ---
 
 ## 💬 Sample Queries
 
-| Goal | Example Query |
+| Goal | Example Prompt |
 |---|---|
-| **Live Multi-Asset Quote** | `"How is Nvidia trading today?"` |
-| **Deep Catalyst Analysis** | `"Why did Tesla stock surge today and what are the FSD catalysts?"` |
-| **Side-by-Side Comparison** | `"Compare Microsoft vs Google in enterprise AI"` |
-| **Official SEC Filings** | `"Show me recent SEC 10-Q filings for Apple"` |
-| **Price Movement Alert** | `"Alert me if NVDA moves 5%"` |
+| **Multi-Asset Real-Time Quote** | `"What is the live price of Bitcoin, Gold, Palantir ($PLTR), and Reliance right now?"` |
+| **Financial Sector Rotation** | `"Which sectors are leading today and where is institutional capital rotating?"` |
+| **Multilingual Interaction** | `"¿Cuál es el precio actual de Nvidia y cuáles son sus principales catalizadores?"` or `"आज रिलायंस और निफ्टी का क्या हाल है?"` |
+| **Deep Valuation & Thesis** | `"Give me a full fundamental breakdown of AMD vs Nvidia, comparing gross margins and forward P/E"` |
+| **Official SEC Filings** | `"Show me recent SEC 10-Q and 8-K filings for Apple"` |
+| **Automated Portfolio Tracking** | `"I bought 50 shares of TSLA at $280 and 100 shares of NVDA at $180"` |
 | **Voice & Chart Inputs** | Send a Telegram voice note or upload a technical chart screenshot |
 
 ---

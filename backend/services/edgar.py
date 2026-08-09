@@ -3,6 +3,8 @@ from typing import Dict, List, Optional
 import urllib.request
 import json
 
+from backend.services.redis_service import RedisService
+
 EDGAR_USER_AGENT = "AtlasFinancialBot/1.0 (contact@atlasfinance.ai)"
 _HEADERS = {"User-Agent": EDGAR_USER_AGENT}
 _cik_cache: Dict[str, str] = {}
@@ -27,7 +29,13 @@ def _ticker_to_cik(ticker: str) -> Optional[str]:
         return known_ciks.get(ticker)
 
 def recent_filings(ticker: str, limit: int = 5) -> List[Dict]:
-    """Latest filings: [{form, date, accession, description, url}]"""
+    """Latest filings with Redis caching: [{form, date, accession, description, url}]"""
+    ticker = ticker.upper().strip()
+    
+    cached = RedisService.get_cached_filings(ticker)
+    if cached:
+        return cached[:limit]
+
     cik = _ticker_to_cik(ticker)
     if not cik:
         return []
@@ -37,7 +45,7 @@ def recent_filings(ticker: str, limit: int = 5) -> List[Dict]:
             data = json.loads(resp.read().decode())
             recent = data.get("filings", {}).get("recent", {})
             out = []
-            for i in range(min(limit, len(recent.get("form", [])))):
+            for i in range(min(10, len(recent.get("form", [])))):
                 acc = recent["accessionNumber"][i]
                 acc_clean = acc.replace("-", "")
                 primary_doc = recent["primaryDocument"][i]
@@ -45,9 +53,10 @@ def recent_filings(ticker: str, limit: int = 5) -> List[Dict]:
                     "form": recent["form"][i],
                     "date": recent["filingDate"][i],
                     "accession": acc,
-                    "description": recent.get("primaryDocDescription", [""] * limit)[i] or recent["form"][i],
+                    "description": recent.get("primaryDocDescription", [""] * 10)[i] or recent["form"][i],
                     "url": f"https://www.sec.gov/Archives/edgar/data/{int(cik)}/{acc_clean}/{primary_doc}",
                 })
-            return out
+            RedisService.cache_filings(ticker, out, ttl=1800)
+            return out[:limit]
     except Exception:
         return []

@@ -1,7 +1,8 @@
 """Repository helpers for SQLAlchemy CRUD operations."""
-from typing import List, Optional
+from typing import List, Optional, Dict, Any
 from datetime import datetime
-from backend.db.models import SessionLocal, User, ProfileFact, WatchlistItem, Message, Alert, Document
+import re
+from backend.db.models import SessionLocal, User, ProfileFact, WatchlistItem, Message, Alert, Document, MarketSnapshot, PortfolioHolding, init_db
 
 def get_or_create_user(tg_id: int, name: str = "") -> User:
     with SessionLocal() as db:
@@ -24,6 +25,10 @@ def get_or_create_user(tg_id: int, name: str = "") -> User:
             for ticker in ["NVDA", "AAPL", "MSFT", "GOOGL", "TSLA"]:
                 db.add(WatchlistItem(user_id=user.id, ticker=ticker))
             db.commit()
+        elif name and name != "Analyst" and (user.name == "Analyst" or not user.name):
+            user.name = name
+            db.commit()
+            db.refresh(user)
         return user
 
 def all_users() -> List[User]:
@@ -149,3 +154,92 @@ def save_document(user_id: int, kind: str, name: str, content: str) -> Document:
         db.commit()
         db.refresh(doc)
         return doc
+
+def record_market_snapshot(quote: Dict[str, Any]) -> None:
+    """Saves live real-time market quote to the local database for historical tracking."""
+    if not quote or not quote.get("ticker"):
+        return
+    try:
+        with SessionLocal() as db:
+            snap = MarketSnapshot(
+                ticker=quote["ticker"].upper(),
+                name=quote.get("name", quote["ticker"]),
+                price=float(quote.get("price", 0.0)),
+                change=float(quote.get("change", 0.0)),
+                change_pct=float(quote.get("change_pct", 0.0)),
+                high=float(quote["high"]) if quote.get("high") else None,
+                low=float(quote["low"]) if quote.get("low") else None,
+                sparkline=quote.get("sparkline", ""),
+                source=quote.get("source", "Finnhub Live Feed")
+            )
+            db.add(snap)
+            db.commit()
+    except Exception:
+        pass
+
+def get_latest_market_snapshots(limit: int = 15) -> List[MarketSnapshot]:
+    with SessionLocal() as db:
+        return db.query(MarketSnapshot).order_by(MarketSnapshot.created_at.desc()).limit(limit).all()
+
+def save_portfolio_holding(user_id: int, ticker: str, shares: float, avg_cost: float = 0.0, notes: str = "") -> PortfolioHolding:
+    ticker = ticker.upper().strip()
+    with SessionLocal() as db:
+        existing = db.query(PortfolioHolding).filter(
+            PortfolioHolding.user_id == user_id,
+            PortfolioHolding.ticker == ticker
+        ).first()
+        if existing:
+            existing.shares = shares
+            if avg_cost > 0:
+                existing.avg_cost = avg_cost
+            if notes:
+                existing.notes = notes
+            db.commit()
+            db.refresh(existing)
+            return existing
+        else:
+            holding = PortfolioHolding(
+                user_id=user_id,
+                ticker=ticker,
+                shares=shares,
+                avg_cost=avg_cost,
+                notes=notes
+            )
+            db.add(holding)
+            db.commit()
+            db.refresh(holding)
+            return holding
+
+def get_portfolio_holdings(user_id: int) -> List[PortfolioHolding]:
+    with SessionLocal() as db:
+        return db.query(PortfolioHolding).filter(PortfolioHolding.user_id == user_id).all()
+
+def auto_extract_and_persist_facts(user_id: int, message_text: str) -> None:
+    """Analyzes message for user facts (holdings, investment horizons, preferences) and saves to local database."""
+    text_lower = message_text.lower()
+    
+    # 1. Holding detection
+    holding_match = re.search(r"\b(?:i have|i hold|i bought|holding|bought|own)\s+(\d+(?:\.\d+)?)\s+(?:shares of\s+)?([A-Za-z]{2,5})\b", message_text, re.IGNORECASE)
+    if holding_match:
+        shares = float(holding_match.group(1))
+        ticker = holding_match.group(2).upper()
+        if ticker not in ["THE", "FOR", "AND", "SOME", "MORE", "THAT"]:
+            fact = f"User holds {shares:g} shares of {ticker}"
+            add_fact(user_id, fact)
+            save_portfolio_holding(user_id, ticker, shares, 0.0, notes="Auto-extracted from conversation")
+            add_to_watchlist(user_id, ticker)
+
+    # 2. Risk appetite
+    if any(k in text_lower for k in ["risk tolerance", "conservative", "aggressive", "moderate risk", "low risk", "high risk"]):
+        if "conservative" in text_lower or "low risk" in text_lower:
+            add_fact(user_id, "User has a conservative, low-risk investment style")
+        elif "aggressive" in text_lower or "high risk" in text_lower:
+            add_fact(user_id, "User has an aggressive, high-growth investment style")
+        elif "moderate" in text_lower:
+            add_fact(user_id, "User prefers a balanced, moderate-risk approach")
+
+    # 3. Horizon
+    if any(k in text_lower for k in ["long-term", "long term", "5 years", "10 years", "retirement"]):
+        add_fact(user_id, "User has a long-term multi-year investment horizon")
+    elif any(k in text_lower for k in ["short-term", "short term", "day trade", "swing trade", "scalp"]):
+        add_fact(user_id, "User focuses on short-term swing trading and momentum")

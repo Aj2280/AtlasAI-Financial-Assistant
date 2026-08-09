@@ -38,20 +38,15 @@ SECRET_PATTERNS = [
     r"\d{9,11}:[a-zA-Z0-9_\-]{35,}"    # Telegram Bot tokens
 ]
 
+from backend.services.redis_service import RedisService
+
 class SecurityService:
     @staticmethod
     def check_rate_limit(user_id: int) -> Tuple[bool, str]:
-        """Enforces rate limiting (max 25 requests/min per user)."""
-        now = time.time()
-        window_start = now - 60
-        
-        # Clean older timestamps
-        _RATE_LIMIT_STORE[user_id] = [t for t in _RATE_LIMIT_STORE[user_id] if t > window_start]
-        
-        if len(_RATE_LIMIT_STORE[user_id]) >= MAX_REQUESTS_PER_MINUTE:
-            return False, "⚠️ <b>Rate Limit Exceeded</b>: You are sending requests too quickly. Please wait a moment before sending more queries."
-            
-        _RATE_LIMIT_STORE[user_id].append(now)
+        """Enforces Redis-powered rate limiting (max 25 requests/min per user)."""
+        allowed, current_count = RedisService.check_rate_limit(user_id, limit=MAX_REQUESTS_PER_MINUTE, window_sec=60)
+        if not allowed:
+            return False, "⚠️ **Rate Limit Exceeded**: You are sending requests too quickly. Please wait a moment before sending more queries."
         return True, ""
 
     @staticmethod
@@ -71,11 +66,11 @@ class SecurityService:
         for pattern in INJECTION_PATTERNS:
             if re.search(pattern, text):
                 return False, text, (
-                    "🛡️ <b>Security Notice</b>: Prompt rejected. Atlas operates under strict institutional compliance "
+                    "🛡️ **Security Notice**: Prompt rejected. Atlas operates under strict institutional compliance "
                     "and financial security guardrails. Please ask a financial, equity, or market analysis query."
                 )
 
-        # Sanitize HTML special characters to prevent injection
+        # Clean text
         clean_text = text.replace("<", "&lt;").replace(">", "&gt;")
         return True, clean_text, ""
 
@@ -90,7 +85,7 @@ class SecurityService:
 
         # Ensure standard compliance disclaimer is appended if investment conclusions are presented
         if "buy" in sanitized.lower() or "sell" in sanitized.lower() or "price target" in sanitized.lower():
-            if "not financial advice" not in sanitized.lower():
-                sanitized += "\n\n<i>Disclaimer: Informational & research analysis only. Not investment advice.</i>"
+            if "not financial advice" not in sanitized.lower() and "disclaimer" not in sanitized.lower():
+                sanitized += "\n\n_Disclaimer: Informational & research analysis only. Not investment advice._"
                 
         return sanitized

@@ -80,6 +80,35 @@ class Document(Base):
     created_at = Column(DateTime, default=datetime.utcnow)
 
 
+class MarketSnapshot(Base):
+    """Persisted real-time market data ticks and snapshots in local database."""
+    __tablename__ = "market_snapshots"
+    id = Column(Integer, primary_key=True)
+    ticker = Column(String(16), index=True, nullable=False)
+    name = Column(String(120), default="")
+    price = Column(Float, nullable=False)
+    change = Column(Float, default=0.0)
+    change_pct = Column(Float, default=0.0)
+    high = Column(Float, nullable=True)
+    low = Column(Float, nullable=True)
+    sparkline = Column(String(32), default="")
+    source = Column(String(64), default="Finnhub Live Feed")
+    created_at = Column(DateTime, default=datetime.utcnow, index=True)
+
+
+class PortfolioHolding(Base):
+    """User portfolio positions stored and tracked locally."""
+    __tablename__ = "portfolio_holdings"
+    id = Column(Integer, primary_key=True)
+    user_id = Column(Integer, ForeignKey("users.id"), index=True)
+    ticker = Column(String(16), nullable=False)
+    shares = Column(Float, default=0.0)
+    avg_cost = Column(Float, default=0.0)
+    notes = Column(Text, default="")
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+
 connect_args = {"check_same_thread": False} if DATABASE_URL.startswith("sqlite") else {}
 engine = create_engine(DATABASE_URL, connect_args=connect_args)
 SessionLocal = sessionmaker(bind=engine, expire_on_commit=False)

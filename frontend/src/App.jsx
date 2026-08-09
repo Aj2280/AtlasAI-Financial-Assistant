@@ -1,8 +1,65 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { 
   Send, Mic, Image, FileText, Bot, User, Bell, Sparkles, TrendingUp, 
-  Layers, ShieldAlert, Cpu, CheckCircle2, RefreshCw, Plus, Calendar, Table, FileSpreadsheet, SendHorizontal, Key
+  Layers, ShieldAlert, Cpu, CheckCircle2, RefreshCw, Plus, Calendar, Table, FileSpreadsheet, SendHorizontal, Key, Database, Clock, Globe,
+  PieChart, Share2, Download, ExternalLink, Activity, Zap
 } from 'lucide-react';
+
+function renderFormattedContent(text) {
+  if (!text) return null;
+  
+  // Clean out any accidental raw HTML tags
+  let clean = text
+    .replace(/<b>(.*?)<\/b>/gi, '**$1**')
+    .replace(/<i>(.*?)<\/i>/gi, '*$1*')
+    .replace(/<code>(.*?)<\/code>/gi, '`$1`')
+    .replace(/<a\s+href=['"]([^'"]+)['"][^>]*>(.*?)<\/a>/gi, '$2 ($1)')
+    .replace(/<[^>]+>/g, '');
+
+  const lines = clean.split('\n');
+  return lines.map((line, lineIdx) => {
+    const parts = [];
+    const regex = /(\*\*[^*]+\*\*|\*[^*]+\*|`[^`]+`)/g;
+    let match;
+    let lastIndex = 0;
+    let keyIdx = 0;
+
+    while ((match = regex.exec(line)) !== null) {
+      if (match.index > lastIndex) {
+        parts.push(line.substring(lastIndex, match.index));
+      }
+      const token = match[0];
+      if (token.startsWith('**') && token.endsWith('**')) {
+        parts.push(<strong key={keyIdx++} style={{ color: '#F8FAFC', fontWeight: 700 }}>{token.slice(2, -2)}</strong>);
+      } else if (token.startsWith('*') && token.endsWith('*')) {
+        parts.push(<em key={keyIdx++} style={{ color: '#94A3B8' }}>{token.slice(1, -1)}</em>);
+      } else if (token.startsWith('`') && token.endsWith('`')) {
+        parts.push(<code key={keyIdx++} style={{ background: 'rgba(255,255,255,0.1)', padding: '0.1rem 0.3rem', borderRadius: '4px', fontSize: '0.85em' }}>{token.slice(1, -1)}</code>);
+      }
+      lastIndex = regex.lastIndex;
+    }
+
+    if (lastIndex < line.length) {
+      parts.push(line.substring(lastIndex));
+    }
+
+    const isBullet = line.trim().startsWith('•') || line.trim().startsWith('-');
+
+    return (
+      <div 
+        key={lineIdx} 
+        style={{ 
+          minHeight: line.trim() === '' ? '0.65rem' : 'auto', 
+          paddingLeft: isBullet ? '0.4rem' : '0',
+          marginBottom: isBullet ? '0.25rem' : '0.15rem',
+          lineHeight: '1.5'
+        }}
+      >
+        {parts.length > 0 ? parts : <span>&nbsp;</span>}
+      </div>
+    );
+  });
+}
 
 export default function App() {
   const [messages, setMessages] = useState([
@@ -26,8 +83,18 @@ export default function App() {
   const [briefStatus, setBriefStatus] = useState(null);
   const [newTicker, setNewTicker] = useState('');
   const [showTokenModal, setShowTokenModal] = useState(false);
+  const [showSectorsModal, setShowSectorsModal] = useState(false);
+  const [showIntegrationsModal, setShowIntegrationsModal] = useState(false);
+  const [sectorsList, setSectorsList] = useState([]);
+  const [integrationsList, setIntegrationsList] = useState([]);
+  const [discordWebhookUrl, setDiscordWebhookUrl] = useState('');
+  const [slackWebhookUrl, setSlackWebhookUrl] = useState('');
+  const [integrationFeedback, setIntegrationFeedback] = useState('');
   const [botToken, setBotToken] = useState('');
   const [botConnected, setBotConnected] = useState(false);
+  const [redisStatus, setRedisStatus] = useState(null);
+  const [liveTime, setLiveTime] = useState(new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }));
+  const [userTz, setUserTz] = useState(Intl.DateTimeFormat().resolvedOptions().timeZone || 'Asia/Kolkata');
   const chatEndRef = useRef(null);
 
   const telegramId = 1001;
@@ -36,11 +103,119 @@ export default function App() {
     fetchProfile();
     fetchLiveQuote('NVDA');
     checkBotStatus();
+    fetchConversationHistory();
+    fetchRedisStatus();
+    fetchSectors();
+    fetchIntegrations();
+
+    const timer = setInterval(() => {
+      setLiveTime(new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }));
+    }, 1000);
+
+    return () => clearInterval(timer);
   }, []);
+
+  const fetchSectors = async () => {
+    try {
+      const res = await fetch('/api/sectors');
+      if (res.ok) {
+        const data = await res.json();
+        setSectorsList(data.sectors || []);
+      }
+    } catch (e) {
+      console.error("Fetch sectors error", e);
+    }
+  };
+
+  const fetchIntegrations = async () => {
+    try {
+      const res = await fetch('/api/integrations');
+      if (res.ok) {
+        const data = await res.json();
+        setIntegrationsList(data.platforms || []);
+      }
+    } catch (e) {
+      console.error("Fetch integrations error", e);
+    }
+  };
+
+  const handleTestDiscord = async () => {
+    setIntegrationFeedback('Broadcasting signal to Discord...');
+    try {
+      const res = await fetch('/api/integrations/discord/test', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title: "Institutional Sector & Price Alert",
+          description: "Live real-time market data signal dispatched across Atlas financial mesh.",
+          webhook_url: discordWebhookUrl || undefined
+        })
+      });
+      const data = await res.json();
+      setIntegrationFeedback(data.status === 'success' ? '✅ Broadcast successfully delivered to Discord!' : `⚠️ ${data.message}`);
+    } catch (e) {
+      setIntegrationFeedback(`❌ Error: ${e.message}`);
+    }
+  };
+
+  const handleTestSlack = async () => {
+    setIntegrationFeedback('Broadcasting signal to Slack...');
+    try {
+      const res = await fetch('/api/integrations/slack/test', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title: "Atlas Executive Market Briefing",
+          text: "Technology and Financials are leading today's intraday institutional volume inflow.",
+          webhook_url: slackWebhookUrl || undefined
+        })
+      });
+      const data = await res.json();
+      setIntegrationFeedback(data.status === 'success' ? '✅ Message successfully posted to Slack!' : `⚠️ ${data.message}`);
+    } catch (e) {
+      setIntegrationFeedback(`❌ Error: ${e.message}`);
+    }
+  };
+
+  const downloadPortfolioCSV = () => {
+    window.open(`/api/export/portfolio-csv?tg_id=${telegramId}`, '_blank');
+  };
 
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
+
+  const fetchConversationHistory = async () => {
+    try {
+      const res = await fetch(`/api/messages/${telegramId}`);
+      if (res.ok) {
+        const data = await res.json();
+        if (data.messages && data.messages.length > 0) {
+          setMessages(data.messages);
+        }
+      }
+    } catch (e) {
+      console.error("Fetch messages error", e);
+    }
+  };
+
+  const handleClearHistory = async () => {
+    if (!confirm("Are you sure you want to clear conversation memory?")) return;
+    try {
+      await fetch(`/api/messages/${telegramId}`, { method: 'DELETE' });
+      setMessages([
+        {
+          id: Date.now().toString(),
+          sender: 'bot',
+          channel: 'text',
+          content: "Memory cleared. What company or sector would you like to analyze next?",
+          timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+        }
+      ]);
+    } catch (e) {
+      console.error("Clear messages error", e);
+    }
+  };
 
   const checkBotStatus = async () => {
     try {
@@ -51,6 +226,18 @@ export default function App() {
       }
     } catch (e) {
       console.error("Bot status check error", e);
+    }
+  };
+
+  const fetchRedisStatus = async () => {
+    try {
+      const res = await fetch('/api/redis/status');
+      if (res.ok) {
+        const data = await res.json();
+        setRedisStatus(data);
+      }
+    } catch (e) {
+      console.error("Fetch Redis status error", e);
     }
   };
 
@@ -210,8 +397,51 @@ export default function App() {
           </div>
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
           
+          {/* Live Real-Time Timezone Clock */}
+          <div
+            className="glass-pill"
+            style={{ 
+              padding: '0.45rem 0.9rem', 
+              borderRadius: '8px', 
+              border: '1px solid rgba(0, 242, 254, 0.3)', 
+              background: 'rgba(0, 242, 254, 0.08)',
+              color: 'var(--text-main)', 
+              display: 'flex', 
+              alignItems: 'center', 
+              gap: '0.4rem', 
+              fontSize: '0.8rem', 
+              fontWeight: 600 
+            }}
+            title={`Real-Time Local Clock (${userTz})`}
+          >
+            <Clock size={14} color="var(--accent-cyan)" />
+            <span>{liveTime}</span>
+            <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>({userTz.split('/')[1] || userTz})</span>
+          </div>
+
+          {/* Redis Cache Status Indicator */}
+          <div
+            className="glass-pill"
+            style={{ 
+              padding: '0.45rem 0.9rem', 
+              borderRadius: '8px', 
+              border: '1px solid rgba(239, 68, 68, 0.4)', 
+              background: 'rgba(239, 68, 68, 0.1)',
+              color: 'var(--text-main)', 
+              display: 'flex', 
+              alignItems: 'center', 
+              gap: '0.4rem', 
+              fontSize: '0.8rem', 
+              fontWeight: 600 
+            }}
+            title={redisStatus ? `${redisStatus.engine} (${redisStatus.cached_keys_count} keys cached, ${redisStatus.cache_hits} hits)` : "Redis Engine Active"}
+          >
+            <Database size={14} color="#EF4444" />
+            <span>Redis: {redisStatus ? (redisStatus.is_live_server ? "LIVE CLUSTER" : "FAST CACHE") : "CONNECTED"}</span>
+          </div>
+
           {/* Real Telegram Status Button */}
           <button 
             onClick={() => setShowTokenModal(true)}
@@ -235,15 +465,307 @@ export default function App() {
           </button>
 
           <button 
+            onClick={handleClearHistory}
+            className="glass-pill"
+            style={{ padding: '0.45rem 0.9rem', borderRadius: '8px', border: '1px solid var(--border)', color: 'var(--text-muted)', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.8rem', fontWeight: 600 }}
+            title="Clear Chat History Memory"
+          >
+            <RefreshCw size={14} color="var(--text-muted)" />
+            <span>Clear Memory</span>
+          </button>
+
+          {/* Real-Time Financial Sectors Button */}
+          <button 
+            onClick={() => { fetchSectors(); setShowSectorsModal(true); }}
+            className="glass-pill"
+            style={{ 
+              padding: '0.45rem 0.9rem', 
+              borderRadius: '8px', 
+              border: '1px solid rgba(139, 92, 246, 0.4)', 
+              background: 'rgba(139, 92, 246, 0.15)',
+              color: '#DDD6FE', 
+              cursor: 'pointer', 
+              display: 'flex', 
+              alignItems: 'center', 
+              gap: '0.4rem', 
+              fontSize: '0.8rem', 
+              fontWeight: 600 
+            }}
+            title="Real-Time 11 GICS Financial Sectors & Heatmap"
+          >
+            <PieChart size={14} color="#A78BFA" />
+            <span>Financial Sectors ({sectorsList.length || 13})</span>
+          </button>
+
+          {/* Multi-Platform Integrations Hub Button */}
+          <button 
+            onClick={() => { fetchIntegrations(); setShowIntegrationsModal(true); }}
+            className="glass-pill"
+            style={{ 
+              padding: '0.45rem 0.9rem', 
+              borderRadius: '8px', 
+              border: '1px solid rgba(16, 185, 129, 0.4)', 
+              background: 'rgba(16, 185, 129, 0.15)',
+              color: '#A7F3D0', 
+              cursor: 'pointer', 
+              display: 'flex', 
+              alignItems: 'center', 
+              gap: '0.4rem', 
+              fontSize: '0.8rem', 
+              fontWeight: 600 
+            }}
+            title="Connect Discord, Slack, TradingView Webhooks & Export Data"
+          >
+            <Share2 size={14} color="#34D399" />
+            <span>Platform Hub</span>
+          </button>
+
+          <button 
             onClick={() => triggerDailyBrief(false)}
             className="glass-pill"
             style={{ padding: '0.45rem 0.9rem', borderRadius: '8px', border: '1px solid var(--border)', color: 'var(--text-main)', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.8rem', fontWeight: 600 }}
           >
             <Bell size={14} color="var(--accent-cyan)" />
-            <span>Test Proactive Silence</span>
+            <span>Test Silence</span>
           </button>
         </div>
       </header>
+
+      {/* Real-Time Financial Sectors Modal */}
+      {showSectorsModal && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(10px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100, padding: '2rem' }}>
+          <div className="glass" style={{ width: '900px', maxHeight: '85vh', display: 'flex', flexDirection: 'column', borderRadius: '16px', border: '1px solid rgba(139, 92, 246, 0.3)', background: '#0F131D', overflow: 'hidden' }}>
+            <div style={{ padding: '1.25rem 1.5rem', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+                <PieChart size={22} color="#A78BFA" />
+                <div>
+                  <h2 style={{ fontSize: '1.15rem', fontWeight: 800 }}>Real-Time Financial Sectors Heatmap</h2>
+                  <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Institutional live tracking across all 11 GICS market sectors, Crypto & Macro commodities</p>
+                </div>
+              </div>
+              <button 
+                onClick={() => setShowSectorsModal(false)}
+                style={{ background: 'transparent', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', fontSize: '1.2rem', fontWeight: 700 }}
+              >
+                ✕
+              </button>
+            </div>
+
+            <div style={{ padding: '1.25rem 1.5rem', overflowY: 'auto', display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: '1rem' }}>
+              {sectorsList.map((sec) => (
+                <div 
+                  key={sec.id}
+                  style={{
+                    padding: '1rem',
+                    borderRadius: '12px',
+                    background: 'rgba(255, 255, 255, 0.03)',
+                    border: '1px solid rgba(255, 255, 255, 0.08)',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '0.6rem'
+                  }}
+                >
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                    <div>
+                      <span style={{ fontSize: '0.7rem', padding: '0.15rem 0.4rem', borderRadius: '4px', background: 'rgba(139, 92, 246, 0.2)', color: '#C4B5FD', fontWeight: 700, fontFamily: 'var(--font-mono)' }}>
+                        {sec.etf}
+                      </span>
+                      <h3 style={{ fontSize: '0.9rem', fontWeight: 700, marginTop: '0.3rem' }}>{sec.name}</h3>
+                    </div>
+                    <div style={{ textAlign: 'right' }}>
+                      <div style={{ fontSize: '0.95rem', fontWeight: 800, fontFamily: 'var(--font-mono)' }}>${sec.etf_price}</div>
+                      <div style={{ fontSize: '0.8rem', fontWeight: 700, color: sec.change_pct >= 0 ? 'var(--gain)' : 'var(--loss)' }}>
+                        {sec.change_pct >= 0 ? '+' : ''}{sec.change_pct}%
+                      </div>
+                    </div>
+                  </div>
+
+                  <p style={{ fontSize: '0.7rem', color: 'var(--text-muted)', lineHeight: '1.3' }}>
+                    {sec.description}
+                  </p>
+
+                  <div style={{ fontSize: '0.7rem', display: 'flex', justifyContent: 'space-between', background: 'rgba(0,0,0,0.3)', padding: '0.4rem 0.6rem', borderRadius: '6px' }}>
+                    <span>Index Wgt: <b>{sec.weight}</b></span>
+                    <span>P/E: <b>{sec.benchmark_pe}</b></span>
+                  </div>
+
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.7rem', color: '#93C5FD' }}>
+                    <span>{sec.sentiment}</span>
+                    <span style={{ fontFamily: 'monospace' }}>{sec.sparkline}</span>
+                  </div>
+
+                  <div style={{ display: 'flex', gap: '0.3rem', flexWrap: 'wrap', marginTop: '0.2rem' }}>
+                    {sec.leaders?.map((ldr, i) => (
+                      <button
+                        key={i}
+                        onClick={() => {
+                          fetchLiveQuote(ldr.ticker);
+                          setShowSectorsModal(false);
+                        }}
+                        style={{
+                          fontSize: '0.65rem',
+                          padding: '0.2rem 0.45rem',
+                          borderRadius: '4px',
+                          background: 'rgba(255, 255, 255, 0.06)',
+                          border: '1px solid rgba(255, 255, 255, 0.1)',
+                          color: '#FFF',
+                          cursor: 'pointer',
+                          fontFamily: 'var(--font-mono)'
+                        }}
+                        title={`Analyze ${ldr.ticker} ($${ldr.price})`}
+                      >
+                        {ldr.ticker} {ldr.change_pct >= 0 ? '+' : ''}{ldr.change_pct}%
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <div style={{ padding: '1rem 1.5rem', borderTop: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'rgba(0,0,0,0.2)' }}>
+              <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                Real-time institutional sector data streams continuously updated.
+              </span>
+              <button 
+                onClick={() => {
+                  setShowSectorsModal(false);
+                  setInputText("Provide an institutional sector rotation analysis comparing Technology vs Financials and Energy.");
+                  handleSendMessage();
+                }}
+                style={{ padding: '0.5rem 1.25rem', borderRadius: '8px', background: 'linear-gradient(135deg, #8B5CF6, #6366F1)', border: 'none', color: '#FFF', fontWeight: 700, cursor: 'pointer', fontSize: '0.8rem' }}
+              >
+                Analyze Sector Rotation in Chat
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Multi-Platform Integrations Hub Modal */}
+      {showIntegrationsModal && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(10px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100, padding: '2rem' }}>
+          <div className="glass" style={{ width: '850px', maxHeight: '85vh', display: 'flex', flexDirection: 'column', borderRadius: '16px', border: '1px solid rgba(16, 185, 129, 0.3)', background: '#0F131D', overflow: 'hidden' }}>
+            <div style={{ padding: '1.25rem 1.5rem', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+                <Share2 size={22} color="#34D399" />
+                <div>
+                  <h2 style={{ fontSize: '1.15rem', fontWeight: 800 }}>Multi-Platform Integration Hub</h2>
+                  <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Connect Atlas AI to Telegram, Discord, Slack, TradingView & Google Sheets</p>
+                </div>
+              </div>
+              <button 
+                onClick={() => setShowIntegrationsModal(false)}
+                style={{ background: 'transparent', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', fontSize: '1.2rem', fontWeight: 700 }}
+              >
+                ✕
+              </button>
+            </div>
+
+            <div style={{ padding: '1.25rem 1.5rem', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+              {/* Platform Grid */}
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                {integrationsList.map((plat) => (
+                  <div 
+                    key={plat.id}
+                    style={{
+                      padding: '1rem',
+                      borderRadius: '12px',
+                      background: 'rgba(255, 255, 255, 0.03)',
+                      border: '1px solid rgba(255, 255, 255, 0.08)',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: '0.4rem'
+                    }}
+                  >
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <h3 style={{ fontSize: '0.85rem', fontWeight: 700 }}>{plat.name}</h3>
+                      <span style={{ fontSize: '0.65rem', padding: '0.15rem 0.45rem', borderRadius: '4px', background: plat.status === 'connected' ? 'rgba(16, 185, 129, 0.2)' : 'rgba(0, 242, 254, 0.15)', color: plat.status === 'connected' ? '#34D399' : 'var(--accent-cyan)', fontWeight: 700, textTransform: 'uppercase' }}>
+                        {plat.status}
+                      </span>
+                    </div>
+                    <span style={{ fontSize: '0.7rem', color: 'var(--accent-cyan)' }}>{plat.category}</span>
+                    <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', lineHeight: '1.3' }}>
+                      {plat.description}
+                    </p>
+                  </div>
+                ))}
+              </div>
+
+              {/* Discord & Slack Webhooks Configuration */}
+              <div style={{ padding: '1rem', borderRadius: '12px', background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(255,255,255,0.06)', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                <h4 style={{ fontSize: '0.85rem', fontWeight: 700, color: '#FFF' }}>Test Discord & Slack Webhook Broadcasts</h4>
+                
+                <div style={{ display: 'flex', gap: '0.75rem' }}>
+                  <input 
+                    type="text" 
+                    placeholder="Discord Webhook URL (https://discord.com/api/webhooks/...)" 
+                    value={discordWebhookUrl}
+                    onChange={(e) => setDiscordWebhookUrl(e.target.value)}
+                    style={{ flex: 1, padding: '0.5rem 0.75rem', borderRadius: '6px', border: '1px solid var(--border)', background: '#090C10', color: '#FFF', fontSize: '0.75rem' }}
+                  />
+                  <button 
+                    onClick={handleTestDiscord}
+                    style={{ padding: '0.5rem 1rem', borderRadius: '6px', background: '#5865F2', border: 'none', color: '#FFF', fontWeight: 700, cursor: 'pointer', fontSize: '0.75rem' }}
+                  >
+                    Test Discord
+                  </button>
+                </div>
+
+                <div style={{ display: 'flex', gap: '0.75rem' }}>
+                  <input 
+                    type="text" 
+                    placeholder="Slack Webhook URL (https://hooks.slack.com/services/...)" 
+                    value={slackWebhookUrl}
+                    onChange={(e) => setSlackWebhookUrl(e.target.value)}
+                    style={{ flex: 1, padding: '0.5rem 0.75rem', borderRadius: '6px', border: '1px solid var(--border)', background: '#090C10', color: '#FFF', fontSize: '0.75rem' }}
+                  />
+                  <button 
+                    onClick={handleTestSlack}
+                    style={{ padding: '0.5rem 1rem', borderRadius: '6px', background: '#4A154B', border: 'none', color: '#FFF', fontWeight: 700, cursor: 'pointer', fontSize: '0.75rem' }}
+                  >
+                    Test Slack
+                  </button>
+                </div>
+
+                {integrationFeedback && (
+                  <div style={{ fontSize: '0.75rem', color: '#34D399', fontWeight: 600, padding: '0.4rem', background: 'rgba(0,0,0,0.4)', borderRadius: '4px' }}>
+                    {integrationFeedback}
+                  </div>
+                )}
+              </div>
+
+              {/* TradingView Inbound Webhook Instructions */}
+              <div style={{ padding: '1rem', borderRadius: '12px', background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(255,255,255,0.06)' }}>
+                <h4 style={{ fontSize: '0.85rem', fontWeight: 700, color: '#FFF', marginBottom: '0.4rem' }}>TradingView Pine Script Inbound Webhook</h4>
+                <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '0.5rem' }}>
+                  Set TradingView alert Webhook URL to: <code>http://127.0.0.1:8000/api/webhooks/tradingview</code> with message payload:
+                </p>
+                <pre style={{ fontSize: '0.7rem', padding: '0.5rem', background: '#090C10', borderRadius: '6px', color: '#38BDF8', fontFamily: 'var(--font-mono)', overflowX: 'auto' }}>
+{`{
+  "ticker": "{{ticker}}",
+  "action": "BUY",
+  "price": {{close}},
+  "strategy": "RSI Bullish Divergence"
+}`}
+                </pre>
+              </div>
+            </div>
+
+            <div style={{ padding: '1rem 1.5rem', borderTop: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'rgba(0,0,0,0.2)' }}>
+              <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                All webhook connections secured with atomic rate limiting and input validation.
+              </span>
+              <button 
+                onClick={downloadPortfolioCSV}
+                style={{ padding: '0.5rem 1.25rem', borderRadius: '8px', background: 'linear-gradient(135deg, #10B981, #059669)', border: 'none', color: '#FFF', fontWeight: 700, cursor: 'pointer', fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}
+              >
+                <Download size={14} />
+                <span>Export Portfolio & Sectors CSV</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Real Telegram Bot Token Modal */}
       {showTokenModal && (
@@ -340,8 +862,8 @@ export default function App() {
                     )}
 
                     {/* Message Body rendering */}
-                    <div className="prose-atlas" style={{ whiteSpace: 'pre-wrap' }}>
-                      {msg.content}
+                    <div className="prose-atlas">
+                      {renderFormattedContent(msg.content)}
                     </div>
 
                     {/* Citations / Sources */}

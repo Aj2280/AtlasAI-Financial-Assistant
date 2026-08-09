@@ -4,9 +4,10 @@
 
 **Autonomous Financial Intelligence Delivered Exclusively via Telegram ([@Atlas39bot](https://t.me/Atlas39bot))**
 
+[![Netlify Status](https://img.shields.io/badge/Live%20Demo-atlas39.netlify.app-00C7B7.svg?logo=netlify&logoColor=white)](https://atlas39.netlify.app)
+[![Telegram Bot](https://img.shields.io/badge/Telegram%20Bot-@Atlas39bot-2CA5E0.svg?logo=telegram&logoColor=white)](https://t.me/Atlas39bot)
 [![Python 3.9+](https://img.shields.io/badge/Python-3.9%2B-3776AB.svg?logo=python&logoColor=white)](https://www.python.org/)
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.100%2B-009688.svg?logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com/)
-[![Telegram Bot](https://img.shields.io/badge/Telegram%20Bot-@Atlas39bot-2CA5E0.svg?logo=telegram&logoColor=white)](https://t.me/Atlas39bot)
 [![Groq Llama 3.3](https://img.shields.io/badge/Groq-LLaMA%203.3%2070B-F55036.svg)](https://groq.com/)
 [![Groq Whisper](https://img.shields.io/badge/Groq-Whisper%20v3-F55036.svg)](https://groq.com/)
 [![SEC EDGAR](https://img.shields.io/badge/SEC.gov-EDGAR%20Official-003366.svg)](https://www.sec.gov/)

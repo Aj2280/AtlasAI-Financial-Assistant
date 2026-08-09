@@ -5,6 +5,8 @@ import {
   PieChart, Share2, Download, ExternalLink, Activity, Zap
 } from 'lucide-react';
 
+const API_BASE = (import.meta.env.VITE_API_URL || '').replace(/\/+$/, '');
+
 function renderFormattedContent(text) {
   if (!text) return null;
   
@@ -117,7 +119,7 @@ export default function App() {
 
   const fetchSectors = async () => {
     try {
-      const res = await fetch('/api/sectors');
+      const res = await fetch(`${API_BASE}/api/sectors`);
       if (res.ok) {
         const data = await res.json();
         setSectorsList(data.sectors || []);
@@ -129,7 +131,7 @@ export default function App() {
 
   const fetchIntegrations = async () => {
     try {
-      const res = await fetch('/api/integrations');
+      const res = await fetch(`${API_BASE}/api/integrations`);
       if (res.ok) {
         const data = await res.json();
         setIntegrationsList(data.platforms || []);
@@ -142,7 +144,7 @@ export default function App() {
   const handleTestDiscord = async () => {
     setIntegrationFeedback('Broadcasting signal to Discord...');
     try {
-      const res = await fetch('/api/integrations/discord/test', {
+      const res = await fetch(`${API_BASE}/api/integrations/discord/test`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -161,7 +163,7 @@ export default function App() {
   const handleTestSlack = async () => {
     setIntegrationFeedback('Broadcasting signal to Slack...');
     try {
-      const res = await fetch('/api/integrations/slack/test', {
+      const res = await fetch(`${API_BASE}/api/integrations/slack/test`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -178,7 +180,7 @@ export default function App() {
   };
 
   const downloadPortfolioCSV = () => {
-    window.open(`/api/export/portfolio-csv?tg_id=${telegramId}`, '_blank');
+    window.open(`${API_BASE}/api/export/portfolio-csv?tg_id=${telegramId}`, '_blank');
   };
 
   useEffect(() => {
@@ -187,7 +189,7 @@ export default function App() {
 
   const fetchConversationHistory = async () => {
     try {
-      const res = await fetch(`/api/messages/${telegramId}`);
+      const res = await fetch(`${API_BASE}/api/messages/${telegramId}`);
       if (res.ok) {
         const data = await res.json();
         if (data.messages && data.messages.length > 0) {
@@ -202,7 +204,7 @@ export default function App() {
   const handleClearHistory = async () => {
     if (!confirm("Are you sure you want to clear conversation memory?")) return;
     try {
-      await fetch(`/api/messages/${telegramId}`, { method: 'DELETE' });
+      await fetch(`${API_BASE}/api/messages/${telegramId}`, { method: 'DELETE' });
       setMessages([
         {
           id: Date.now().toString(),
@@ -219,7 +221,7 @@ export default function App() {
 
   const checkBotStatus = async () => {
     try {
-      const res = await fetch('/api/telegram/bot-status');
+      const res = await fetch(`${API_BASE}/api/telegram/bot-status`);
       if (res.ok) {
         const data = await res.json();
         setBotConnected(data.connected);
@@ -231,7 +233,7 @@ export default function App() {
 
   const fetchRedisStatus = async () => {
     try {
-      const res = await fetch('/api/redis/status');
+      const res = await fetch(`${API_BASE}/api/redis/status`);
       if (res.ok) {
         const data = await res.json();
         setRedisStatus(data);
@@ -244,7 +246,7 @@ export default function App() {
   const handleSetToken = async () => {
     if (!botToken.trim()) return;
     try {
-      const res = await fetch('/api/telegram/set-token', {
+      const res = await fetch(`${API_BASE}/api/telegram/set-token`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ bot_token: botToken.trim() })
@@ -261,7 +263,7 @@ export default function App() {
 
   const fetchProfile = async () => {
     try {
-      const res = await fetch(`/api/profile/${telegramId}`);
+      const res = await fetch(`${API_BASE}/api/profile/${telegramId}`);
       if (res.ok) {
         const data = await res.json();
         setProfile(data);
@@ -273,7 +275,7 @@ export default function App() {
 
   const fetchLiveQuote = async (ticker) => {
     try {
-      const res = await fetch(`/api/market/quote/${ticker}`);
+      const res = await fetch(`${API_BASE}/api/market/quote/${ticker}`);
       if (res.ok) {
         const data = await res.json();
         setLiveQuote(data);
@@ -299,7 +301,7 @@ export default function App() {
     setLoading(true);
 
     try {
-      const res = await fetch('/api/chat', {
+      const res = await fetch(`${API_BASE}/api/chat`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -333,7 +335,7 @@ export default function App() {
   const triggerDailyBrief = async (force = false) => {
     setLoading(true);
     try {
-      const res = await fetch('/api/brief/trigger', {
+      const res = await fetch(`${API_BASE}/api/brief/trigger`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ telegram_id: telegramId, force })
@@ -364,7 +366,7 @@ export default function App() {
   const handleAddWatchlist = async () => {
     if (!newTicker.trim()) return;
     try {
-      const res = await fetch('/api/watchlist/add', {
+      const res = await fetch(`${API_BASE}/api/watchlist/add`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ telegram_id: telegramId, ticker: newTicker.trim() })

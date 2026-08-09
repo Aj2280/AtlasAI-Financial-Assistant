@@ -158,34 +158,32 @@ def _run_agent_sync(user, incoming_text: str) -> str:
     explicit_tickers = _extract_tickers(incoming_text)
     active_ticker = explicit_tickers[0] if explicit_tickers else _find_recent_ticker_context(user.id)
     
-    # 6. Reminders & Alerts
-    alert_triggers = ["alert if", "create alert", "set alert", "notify me if", "price alert", "notify me when", "remind me to", "remind me tomorrow", "remind me at"]
-    if any(k in text_lower for k in alert_triggers) and not any(k in text_lower for k in ["what we", "what was", "what did", "we talked", "we discussed", "you said", "earlier", "previously", "about"]):
+    # 6. Natural Executive Assistant Actions (Tracking, Alerts, Meetings, Scheduled Briefings)
+    if any(k in text_lower for k in ["track ", "start tracking", "follow "]) and active_ticker:
+        repo.add_to_watchlist(user.id, active_ticker)
+        repo.create_alert(user.id, "filing", ticker=active_ticker)
+        repo.add_fact(user.id, f"User is actively tracking {active_ticker}")
+
+    if any(k in text_lower for k in ["schedule a meeting", "set up a meeting", "schedule meeting", "remind me to", "remind me tomorrow", "remind me one hour", "remind me before"]):
+        repo.create_alert(user.id, "reminder", note=incoming_text)
+        repo.add_fact(user.id, f"Scheduled reminder/meeting: '{incoming_text}'")
+
+    if any(k in text_lower for k in ["alert if", "create alert", "set alert", "notify me if", "price alert", "notify me when"]):
         target = active_ticker or "NVDA"
         threshold = 5.0
         pct_match = re.search(r"(\d+(\.\d+)?)%", incoming_text)
         if pct_match:
             threshold = float(pct_match.group(1))
-            
-        al = repo.create_alert(user.id, "price_move", ticker=target, threshold_pct=threshold, note=incoming_text)
-        return (
-            f"⏰ **Alert Set for {target}!**\n\n"
-            f"I'll monitor **{target}** and notify you directly if it moves by ±**{threshold:g}%**.\n"
-            f"Watcher ID: `{al.id}` (Active)"
-        )
+        repo.create_alert(user.id, "price_move", ticker=target, threshold_pct=threshold, note=incoming_text)
+        repo.add_fact(user.id, f"Active price alert on {target} at ±{threshold:g}% threshold")
 
-    # 7. SEC Filings
-    if re.search(r"\b(filing|filings|10-k|10-q|8-k|sec filing|edgar)\b", text_lower):
-        target = active_ticker or "NVDA"
-        filings = edgar.recent_filings(target, limit=4)
-        if filings:
-            lines = [f"📄 **Recent SEC Filings for {target}**\n"]
-            for fi in filings:
-                lines.append(f"• **Form {fi['form']}** ({fi['date']}): {fi['description']}\n  {fi['url']}")
-            lines.append("\n_Want me to break down key revenue segments or risk factors from these filings?_")
-            return "\n".join(lines)
+    if any(k in text_lower for k in ["morning briefing", "daily briefing", "create a daily", "morning brief"]):
+        topics = [w for w in ["AI", "Semiconductors", "Technology", "Crypto", "Energy", "Financials"] if w.lower() in text_lower]
+        topic_str = ", ".join(topics) if topics else "Tech & AI"
+        repo.add_fact(user.id, f"User requested customized morning briefing covering {topic_str}")
+        repo.update_user(user.id, briefing_time="08:00")
 
-    # 8. Build full multi-turn conversational memory (Redis cache + SQLite persistence)
+    # 7. Build full multi-turn conversational memory (Redis cache + SQLite persistence)
     cached_turns = RedisService.get_cached_chat_history(user.id, limit=12)
     if cached_turns:
         chat_history = [{"role": t["role"], "content": t["content"]} for t in cached_turns]
@@ -193,7 +191,7 @@ def _run_agent_sync(user, incoming_text: str) -> str:
         recent_turns = repo.recent_messages(user.id, limit=12)
         chat_history = [{"role": m.role, "content": m.content} for m in recent_turns]
 
-    # 9. Build Live Context if a ticker is in focus + User profile & portfolio context from local database
+    # 8. Build Live Context if a ticker is in focus + User profile & portfolio context from local database
     user_tz_str = getattr(user, 'timezone', None) or 'Asia/Kolkata'
     try:
         now_user = datetime.now(ZoneInfo(user_tz_str))
@@ -212,12 +210,20 @@ def _run_agent_sync(user, incoming_text: str) -> str:
         f"Global Financial Market Trading Hours: US NYSE/Nasdaq (09:30 AM - 04:00 PM EST), Indian NSE/BSE (09:15 AM - 03:30 PM IST), Tokyo TSE (09:00 AM - 03:30 PM JST), London LSE (08:00 AM - 04:30 PM GMT), Crypto Markets (24/7 Live)."
     ]
     if facts:
-        context_lines.append(f"User Knowledge & Preferences (from local memory DB): {'; '.join(facts[-6:])}")
+        context_lines.append(f"User Knowledge, Preferences & Stored Reminders (from local memory DB): {'; '.join(facts[-8:])}")
     if holdings:
         holding_strs = [f"{h.ticker} ({h.shares:g} shares)" for h in holdings]
         context_lines.append(f"User Portfolio Holdings (from local DB): {', '.join(holding_strs)}")
     if watchlist:
         context_lines.append(f"User Watchlist: {', '.join(watchlist)}")
+
+    # Add SEC Filings context if relevant
+    if re.search(r"\b(filing|filings|10-k|10-q|8-k|sec filing|annual report|edgar|risk|risks)\b", text_lower):
+        target_sec = active_ticker or "NVDA"
+        filings = edgar.recent_filings(target_sec, limit=3)
+        if filings:
+            f_lines = [f"Form {fi['form']} ({fi['date']}): {fi['description']} - URL: {fi['url']}" for fi in filings]
+            context_lines.append(f"Official SEC EDGAR Filings for {target_sec}: {'; '.join(f_lines)}")
 
     # Add Sector Performance Overview
     if any(k in text_lower for k in ["sector", "sectors", "industry", "rotation", "breadth", "tech", "energy", "financial", "healthcare", "utility", "materials", "industrials", "reit", "crypto", "macro"]):

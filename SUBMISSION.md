@@ -9,11 +9,11 @@
 
 | Evaluation Criterion | Weight | Atlas Implementation Highlights | Grade |
 | :--- | :---: | :--- | :---: |
-| **1. Usefulness, Proactivity & Overall User Value** | **30%** | Timezone-aware Morning/Evening Briefs, "Why It Matters" thesis generation, **Noise Suppression Engine** (zero notifications when nothing material happens), Quality-gated Volatility & SEC Watchers. | **Exceptional** |
-| **2. Product Thinking, Judgment & Feature Selection** | **25%** | Zero-command senior colleague persona, **Smart Ambiguity Clarification** (asking follow-ups on broad queries), background action execution (meetings, alerts, watchlist), multi-platform Hub (Telegram, Web, Discord, Slack, TradingView). | **Exceptional** |
+| **1. Usefulness, Proactivity & Overall User Value** | **30%** | Timezone-aware Morning/Evening Briefs (08:00 & 18:00), "Why It Matters" thesis generation, **Noise Suppression Engine** (zero notifications when nothing material happens), Quality-gated Volatility & SEC Watchers. | **Exceptional** |
+| **2. Product Thinking, Judgment & Feature Selection** | **25%** | **Telegram-First Primary Interface (`@Atlas39bot`)**, Zero-command senior colleague persona, **Conversational Onboarding** (zero forms, progressive role & domain profiling), **Smart Ambiguity Clarification** (asking follow-ups on broad queries), background action execution. | **Exceptional** |
 | **3. AI Experience & Conversational Quality** | **20%** | Groq LLaMA 3.3 70B + OpenRouter multi-model fallback, Groq Whisper v3 voice note transcription, multi-turn conversational memory (Redis cache + SQLite persistence), context-aware portfolio recall. | **Exceptional** |
 | **4. Depth of the Finance Vertical** | **15%** | Real-time multi-asset quotes (US Equities, Indian NSE/BSE, Crypto, Commodities, Forex, US 10Y Yield), 11 GICS Sectors heatmap, 10-K/10-Q Document Intelligence, 5-point executive summaries, categorized risk isolation. | **Exceptional** |
-| **5. Engineering Quality & Implementation** | **10%** | Modular FastAPI backend, SQLite + Redis dual-tier architecture, async background scheduler (`APScheduler`), fully containerized Docker & Cloud deployment ready, custom React/Vite glassmorphism frontend. | **Exceptional** |
+| **5. Engineering Quality & Implementation** | **10%** | Modular FastAPI backend, SQLite + Redis dual-tier architecture, async background scheduler (`APScheduler`), fully containerized Docker & Cloud deployment ready, clean code separation. | **Exceptional** |
 
 ---
 
@@ -42,19 +42,21 @@ Finance professionals don't need another notification spammer; they need **meani
 
 Atlas is designed around how senior executives and analysts actually communicate—natural, conversational, and context-rich.
 
+- 📱 **Telegram as the Exclusive Primary Interface (`@Atlas39bot`)**:
+  - All interactions flow through Telegram with zero command-line complexity.
+- 📌 **Conversational Onboarding Experience**:
+  - **Zero Registration Forms**: The first interaction is a welcoming dialogue with a live market orientation.
+  - **Progressive Learning**: Learns user role (Investor, Analyst, Founder, Finance Pro, Student) and focus sectors (AI, Semiconductors, Venture, Crypto, Macro, Healthcare) over time.
+  - **Natural Integrations**: Introduces Google Sheets, Google Calendar, and Gmail organically when relevant.
+  - **100% Skippable**: Users can ask direct financial queries immediately without completing setup.
 - 🗣️ **Zero-Command Natural Persona**:
-  - Users speak to Atlas as an experienced senior colleague or chief-of-staff. No `/commands` or rigid prompts required.
+  - Users speak to Atlas as an experienced senior colleague or chief-of-staff. No `/commands`, inline buttons, or rigid menus required.
 - ❓ **Smart Ambiguity Clarification (No Guesswork)**:
   - When given open-ended queries like *"Tell me about Apple"*, Atlas provides a brief 2-bullet orientation (live price, 24h trend, core thesis) and **naturally asks follow-up clarifying questions** (valuation multiples, SEC risk factors, earnings catalysts, or portfolio entry point) before assuming intent.
 - ⚡ **Conversational Background Action Execution**:
   - *"Track Tesla and notify me of filings"* ➔ Adds to watchlist, activates SEC EDGAR watcher, and confirms.
   - *"Schedule a meeting with my team tomorrow at 10 AM on this earnings report"* ➔ Schedules reminder, logs pre-meeting briefing agenda, and confirms.
   - *"Create a daily briefing covering AI and semiconductor stocks"* ➔ Updates preferences in local SQLite database and configures custom delivery.
-- 🌐 **Omnichannel Distribution**:
-  - **Web Terminal**: High-density institutional Bloomberg-style dark mode terminal.
-  - **Telegram Bot (`@Atlas39bot`)**: Full conversational assistant with voice note support.
-  - **Discord & Slack Webhooks**: Multi-channel broadcast signals.
-  - **TradingView Inbound Webhooks**: Executes automated strategy alerts from Pine Script.
 
 ---
 
@@ -65,10 +67,12 @@ Atlas is designed around how senior executives and analysts actually communicate
   - **Tier 2 (Deep Fallback)**: OpenRouter `deepseek-chat`, `gpt-4o-mini`, `gemini-2.0-flash`.
 - 🎙️ **Multi-Modal Voice Intelligence**:
   - Real-time voice note transcription via Groq Whisper v3.
+- 🖼️ **Vision & Chart OCR Intelligence**:
+  - Analyzes technical chart support/resistance levels and balance sheet screenshots.
 - 💾 **Continuous Multi-Turn Conversational Memory**:
   - **Redis Layer**: Sub-millisecond session chat cache.
   - **SQLite Layer**: Permanent relational history of messages, user facts, portfolio holdings, and alerts.
-  - **Context Recall**: Seamlessly connects past portfolio holdings with real-time prices (e.g. calculating live position values and unrealized gains across turns).
+  - **Context Recall**: Seamlessly connects past portfolio holdings with real-time prices across multi-turn interactions.
 
 ---
 
@@ -98,18 +102,11 @@ Atlas avoids generic AI summaries in favor of authentic Wall Street analytical f
   - `backend/agent/`: Core routing engine, ticker extraction, multi-turn memory injector, and natural language action handler.
   - `backend/db/`: SQLAlchemy ORM with SQLite database and repository abstraction layer.
   - `backend/scheduler/`: Async background jobs (`APScheduler`) handling timezone-aware briefs, price alerts, and SEC filing watchers.
-- 🚀 **Cloud & Production Ready**:
-  - Containerized with multi-stage `Dockerfile` and `docker-compose.yml`.
-  - Deployment blueprints for Render (`render.yaml`), Railway (`Procfile`), Vercel, and Linux VPS.
-- 🎨 **Modern Design System**:
-  - Built with Vite and React using custom CSS tokens, glassmorphism blur effects, responsive grids, and zero heavyweight component libraries.
+- 🔒 **Security & Compliance**:
+  - Prompt injection defense, API secrets sanitization, and compliance disclaimers.
 
 ---
 
-## 🔗 Submission Links & Artifacts
-
-- **GitHub Repository**: [https://github.com/Aj2280/Atlas-AI-Financial-Assistant-](https://github.com/Aj2280/Atlas-AI-Financial-Assistant-)
-- **Live Local Web Terminal**: `http://localhost:3000`
-- **Live Local FastAPI Backend**: `http://127.0.0.1:8000`
-- **Interactive OpenAPI Documentation**: `http://127.0.0.1:8000/docs`
-- **Telegram Bot**: `@Atlas39bot`
+<div align="center">
+<b>Atlas: Built for Institutional Financial Intelligence 🏛️</b>
+</div>

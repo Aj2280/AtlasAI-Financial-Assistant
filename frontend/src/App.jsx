@@ -4,12 +4,17 @@ import {
   Layers, ShieldAlert, Cpu, CheckCircle2, RefreshCw, Plus, Calendar, Table, FileSpreadsheet, 
   SendHorizontal, Key, Database, Clock, Globe, PieChart, Share2, Download, ExternalLink, 
   Activity, Zap, Copy, Check, ChevronRight, BarChart2, Briefcase, MessageSquare, 
-  ArrowUpRight, ArrowDownRight, Search, Sliders, Volume2
+  ArrowUpRight, ArrowDownRight, Search, Sliders, Volume2, Command
 } from 'lucide-react';
+
+import PriceChart from './components/PriceChart';
+import MarketGauge from './components/MarketGauge';
+import PortfolioDonut from './components/PortfolioDonut';
+import AudioVisualizer from './components/AudioVisualizer';
+import CommandPalette from './components/CommandPalette';
 
 const API_BASE = (import.meta.env.VITE_API_URL || '').replace(/\/+$/, '');
 
-// Static Market Ribbon Data with real-time updates
 const DEFAULT_RIBBON = [
   { ticker: 'NVDA', name: 'Nvidia', price: '$223.96', change: '+2.27%', isUp: true, sparkline: ' ▂▃▅▇█' },
   { ticker: 'AAPL', name: 'Apple', price: '$313.33', change: '+0.29%', isUp: true, sparkline: '▃▄▄▅▅▆' },
@@ -84,6 +89,7 @@ function renderFormattedContent(text) {
 export default function App() {
   // Navigation
   const [activeTab, setActiveTab] = useState('chat'); // 'chat' | 'sectors' | 'documents' | 'portfolio' | 'integrations'
+  const [showCommandPalette, setShowCommandPalette] = useState(false);
   
   // Chat & Messaging
   const [messages, setMessages] = useState([
@@ -106,7 +112,16 @@ export default function App() {
   // Profile, Market & Data
   const [profile, setProfile] = useState(null);
   const [tickerQuery, setTickerQuery] = useState('NVDA');
-  const [liveQuote, setLiveQuote] = useState(null);
+  const [liveQuote, setLiveQuote] = useState({
+    ticker: 'NVDA',
+    price: 223.96,
+    change: 4.96,
+    change_pct: 2.27,
+    pe: '32.5x',
+    gross_margin: '75.1%',
+    moat: 'CUDA Software Ecosystem & High-End AI Accelerators',
+    health_score: '8/10'
+  });
   const [newTicker, setNewTicker] = useState('');
   const [briefStatus, setBriefStatus] = useState(null);
 
@@ -121,9 +136,6 @@ export default function App() {
   // Sectors & Integrations
   const [sectorsList, setSectorsList] = useState([]);
   const [integrationsList, setIntegrationsList] = useState([]);
-  const [discordWebhookUrl, setDiscordWebhookUrl] = useState('');
-  const [slackWebhookUrl, setSlackWebhookUrl] = useState('');
-  const [integrationFeedback, setIntegrationFeedback] = useState('');
 
   // Document Intelligence
   const [activeDoc, setActiveDoc] = useState(null);
@@ -158,7 +170,18 @@ export default function App() {
       setLiveTime(new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }));
     }, 1000);
 
-    return () => clearInterval(timer);
+    const handleGlobalKeyDown = (e) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+        e.preventDefault();
+        setShowCommandPalette(prev => !prev);
+      }
+    };
+    window.addEventListener('keydown', handleGlobalKeyDown);
+
+    return () => {
+      clearInterval(timer);
+      window.removeEventListener('keydown', handleGlobalKeyDown);
+    };
   }, []);
 
   useEffect(() => {
@@ -490,7 +513,6 @@ export default function App() {
         fetchDocuments();
         showToast('Financial report loaded into conversational context!');
         
-        // Add executive summary directly into chat conversation
         const botMsg = {
           id: Date.now().toString(),
           sender: 'bot',
@@ -608,6 +630,17 @@ export default function App() {
         </div>
       )}
 
+      {/* Command Palette Modal (Cmd+K) */}
+      <CommandPalette 
+        isOpen={showCommandPalette}
+        onClose={() => setShowCommandPalette(false)}
+        onSelectAction={(type, val) => {
+          if (type === 'tab') setActiveTab(val);
+          if (type === 'prompt') handleSendMessage(val);
+          if (type === 'brief') triggerDailyBrief(true);
+        }}
+      />
+
       {/* Top Live Real-Time Market Ticker Ribbon */}
       <div className="ticker-ribbon">
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', color: 'var(--accent-cyan)', fontSize: '0.75rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em', paddingRight: '0.5rem', borderRight: '1px solid var(--border)' }}>
@@ -643,12 +676,12 @@ export default function App() {
         {/* Brand & Live Clock */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '1.25rem' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
-            <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: 'linear-gradient(135deg, #00F2FE 0%, #4FACFE 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 0 20px rgba(0, 242, 254, 0.35)' }}>
-              <Zap size={20} color="#07090E" />
+            <div style={{ width: '38px', height: '38px', borderRadius: '10px', background: 'linear-gradient(135deg, #00F2FE 0%, #4FACFE 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 0 20px rgba(0, 242, 254, 0.35)' }}>
+              <Zap size={22} color="#07090E" />
             </div>
             <div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <h1 style={{ fontSize: '1.15rem', fontWeight: 800, letterSpacing: '-0.02em', background: 'linear-gradient(to right, #FFF, #94A3B8)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
+                <h1 style={{ fontSize: '1.2rem', fontWeight: 800, letterSpacing: '-0.02em', background: 'linear-gradient(to right, #FFF, #94A3B8)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
                   ATLAS AI
                 </h1>
                 <span style={{ fontSize: '0.65rem', padding: '0.15rem 0.45rem', borderRadius: '4px', background: 'rgba(0, 242, 254, 0.15)', color: 'var(--accent-cyan)', fontWeight: 700, border: '1px solid rgba(0, 242, 254, 0.3)' }}>
@@ -658,6 +691,19 @@ export default function App() {
               <p style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>Institutional Financial Assistant & Multi-Asset Terminal</p>
             </div>
           </div>
+
+          {/* Quick Spotlight Trigger */}
+          <button
+            onClick={() => setShowCommandPalette(true)}
+            className="glass-pill"
+            style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.35rem 0.75rem', borderRadius: '8px', color: 'var(--text-muted)', fontSize: '0.75rem', cursor: 'pointer' }}
+          >
+            <Search size={13} color="var(--accent-cyan)" />
+            <span>Search / Commands</span>
+            <span style={{ fontSize: '0.65rem', padding: '0.1rem 0.3rem', borderRadius: '4px', background: 'rgba(255,255,255,0.08)', color: '#FFF', fontFamily: 'var(--font-mono)' }}>
+              ⌘K
+            </span>
+          </button>
 
           {/* Clock Pill */}
           <div className="glass-pill" style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', padding: '0.35rem 0.75rem', borderRadius: '8px', fontSize: '0.75rem', color: 'var(--text-secondary)', fontFamily: 'var(--font-mono)' }}>
@@ -746,7 +792,7 @@ export default function App() {
       </header>
 
       {/* Main Workspace Layout */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 350px', flex: 1, overflow: 'hidden' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 380px', flex: 1, overflow: 'hidden' }}>
         
         {/* Left Column: Active Tab Content */}
         <div style={{ display: 'flex', flexDirection: 'column', height: '100%', borderRight: '1px solid var(--border)', background: 'var(--bg-surface)', overflow: 'hidden' }}>
@@ -768,15 +814,15 @@ export default function App() {
                     }}
                   >
                     {msg.sender === 'bot' && (
-                      <div style={{ width: '34px', height: '34px', borderRadius: '10px', background: 'linear-gradient(135deg, #00F2FE 0%, #4FACFE 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, boxShadow: '0 4px 12px rgba(0, 242, 254, 0.25)' }}>
-                        <Bot size={18} color="#07090E" />
+                      <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: 'linear-gradient(135deg, #00F2FE 0%, #4FACFE 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, boxShadow: '0 4px 12px rgba(0, 242, 254, 0.25)' }}>
+                        <Bot size={20} color="#07090E" />
                       </div>
                     )}
 
                     <div style={{ maxWidth: '85%' }}>
                       <div 
                         style={{
-                          padding: '1.1rem 1.4rem',
+                          padding: '1.15rem 1.4rem',
                           borderRadius: msg.sender === 'user' ? '18px 18px 4px 18px' : '18px 18px 18px 4px',
                           background: msg.sender === 'user' 
                             ? 'linear-gradient(135deg, #1E293B 0%, #0F172A 100%)' 
@@ -787,28 +833,32 @@ export default function App() {
                           position: 'relative'
                         }}
                       >
-                        {/* Copy Button */}
-                        <button
-                          onClick={() => copyToClipboard(msg.content, msg.id)}
-                          style={{
-                            position: 'absolute',
-                            top: '0.75rem',
-                            right: '0.75rem',
-                            background: 'rgba(255, 255, 255, 0.05)',
-                            border: '1px solid var(--border)',
-                            borderRadius: '6px',
-                            padding: '0.25rem 0.4rem',
-                            color: 'var(--text-muted)',
-                            cursor: 'pointer',
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '0.25rem',
-                            fontSize: '0.7rem'
-                          }}
-                          title="Copy response to clipboard"
-                        >
-                          {copiedMsgId === msg.id ? <Check size={12} color="var(--gain)" /> : <Copy size={12} />}
-                        </button>
+                        {/* Top Action Bar on Message (Copy + Text-to-Speech) */}
+                        {msg.sender === 'bot' && (
+                          <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: '0.5rem', marginBottom: '0.6rem' }}>
+                            <AudioVisualizer textToRead={msg.content} />
+                            
+                            <button
+                              onClick={() => copyToClipboard(msg.content, msg.id)}
+                              style={{
+                                background: 'rgba(255, 255, 255, 0.05)',
+                                border: '1px solid var(--border)',
+                                borderRadius: '6px',
+                                padding: '0.25rem 0.45rem',
+                                color: 'var(--text-muted)',
+                                cursor: 'pointer',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '0.25rem',
+                                fontSize: '0.7rem'
+                              }}
+                              title="Copy response to clipboard"
+                            >
+                              {copiedMsgId === msg.id ? <Check size={12} color="var(--gain)" /> : <Copy size={12} />}
+                              <span>{copiedMsgId === msg.id ? 'Copied' : 'Copy'}</span>
+                            </button>
+                          </div>
+                        )}
 
                         <div className="prose-atlas" style={{ fontSize: '0.875rem' }}>
                           {renderFormattedContent(msg.content)}
@@ -829,8 +879,8 @@ export default function App() {
                     </div>
 
                     {msg.sender === 'user' && (
-                      <div style={{ width: '34px', height: '34px', borderRadius: '10px', background: '#334155', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                        <User size={18} color="#94A3B8" />
+                      <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: '#334155', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                        <User size={20} color="#94A3B8" />
                       </div>
                     )}
                   </div>
@@ -838,8 +888,8 @@ export default function App() {
 
                 {loading && (
                   <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
-                    <div style={{ width: '34px', height: '34px', borderRadius: '10px', background: 'linear-gradient(135deg, #00F2FE, #4FACFE)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                      <Bot size={18} color="#07090E" />
+                    <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: 'linear-gradient(135deg, #00F2FE, #4FACFE)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      <Bot size={20} color="#07090E" />
                     </div>
                     <div className="glass" style={{ padding: '0.85rem 1.25rem', borderRadius: '16px', display: 'flex', alignItems: 'center', gap: '0.6rem', color: 'var(--text-muted)', fontSize: '0.85rem' }}>
                       <Sparkles size={16} className="animate-pulse-glow" color="var(--accent-cyan)" />
@@ -1134,7 +1184,7 @@ export default function App() {
             <div style={{ padding: '1.5rem', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <div>
-                  <h2 style={{ fontSize: '1.25rem', fontWeight: 800, color: '#FFF' }}>Portfolio Holdings & Live Valuation</h2>
+                  <h2 style={{ fontSize: '1.25rem', fontWeight: 800, color: '#FFF' }}>Portfolio Holdings & Asset Allocation</h2>
                   <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Relational positions tracked in local SQLite database with live Finnhub market quotes</p>
                 </div>
                 <button 
@@ -1146,6 +1196,9 @@ export default function App() {
                   <span>Export CSV</span>
                 </button>
               </div>
+
+              {/* Visual Asset Allocation Donut */}
+              <PortfolioDonut totalValue={64250} />
 
               {/* Add Holding Form */}
               <div className="glass-card" style={{ padding: '1.25rem', display: 'flex', gap: '0.75rem', alignItems: 'center', flexWrap: 'wrap' }}>
@@ -1279,52 +1332,16 @@ export default function App() {
         {/* Right Sidebar: Real-Time Intelligence & User Memory */}
         <div style={{ display: 'flex', flexDirection: 'column', height: '100%', padding: '1.25rem', gap: '1.25rem', overflowY: 'auto', background: 'var(--bg-dark)' }}>
           
-          {/* Quick Quote Search Card */}
-          <div className="glass-card" style={{ padding: '1.25rem', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <span style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                Live Asset Terminal
-              </span>
-              <span style={{ fontSize: '0.7rem', color: 'var(--gain)', fontFamily: 'var(--font-mono)' }}>● Streaming</span>
-            </div>
+          {/* Interactive Live Price Chart Preview */}
+          <PriceChart 
+            ticker={liveQuote.ticker || 'NVDA'} 
+            basePrice={liveQuote.price || 223.96} 
+            changePct={liveQuote.change_pct || 2.27}
+            isUp={(liveQuote.change_pct || 0) >= 0}
+          />
 
-            <div style={{ display: 'flex', gap: '0.5rem' }}>
-              <input 
-                type="text" 
-                placeholder="Search Ticker (e.g. NVDA, AAPL)" 
-                value={tickerQuery}
-                onChange={(e) => setTickerQuery(e.target.value.toUpperCase())}
-                onKeyDown={(e) => { if (e.key === 'Enter') fetchLiveQuote(tickerQuery); }}
-                style={{ flex: 1, padding: '0.5rem 0.75rem', borderRadius: '8px', border: '1px solid var(--border)', background: '#090C10', color: '#FFF', fontSize: '0.8rem', fontFamily: 'var(--font-mono)' }}
-              />
-              <button 
-                onClick={() => fetchLiveQuote(tickerQuery)}
-                style={{ padding: '0.5rem 0.75rem', borderRadius: '8px', background: 'rgba(255,255,255,0.06)', border: '1px solid var(--border)', color: '#FFF', cursor: 'pointer' }}
-              >
-                <Search size={14} />
-              </button>
-            </div>
-
-            {liveQuote && (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', marginTop: '0.25rem' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
-                  <span style={{ fontSize: '1.35rem', fontWeight: 800, color: '#FFF' }}>
-                    ${liveQuote.price}
-                  </span>
-                  <span style={{ fontSize: '0.85rem', fontWeight: 700, color: liveQuote.change >= 0 ? 'var(--gain)' : 'var(--loss)' }}>
-                    {liveQuote.change >= 0 ? `+${liveQuote.change_pct}%` : `${liveQuote.change_pct}%`}
-                  </span>
-                </div>
-
-                <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.4rem', borderTop: '1px solid rgba(255,255,255,0.06)', paddingTop: '0.5rem' }}>
-                  <span>P/E: <strong style={{ color: '#FFF' }}>{liveQuote.pe || '32.5x'}</strong></span>
-                  <span>Margin: <strong style={{ color: '#FFF' }}>{liveQuote.gross_margin || '75.1%'}</strong></span>
-                  <span>Moat: <strong style={{ color: 'var(--accent-cyan)' }}>{liveQuote.moat ? liveQuote.moat.slice(0, 14) + '...' : 'High'}</strong></span>
-                  <span>Health: <strong style={{ color: 'var(--gain)' }}>{liveQuote.health_score || '8/10'}</strong></span>
-                </div>
-              </div>
-            )}
-          </div>
+          {/* Market Pulse Gauge (Fear & Greed) */}
+          <MarketGauge score={72} vix={14.8} advanceRatio="68% / 32%" />
 
           {/* Active Watchlist Card */}
           <div className="glass-card" style={{ padding: '1.25rem', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
@@ -1397,7 +1414,7 @@ export default function App() {
             </button>
           </div>
 
-          {/* System Engine Diagnostics */}
+          {/* Engine Diagnostics */}
           <div className="glass-card" style={{ padding: '1rem', display: 'flex', flexDirection: 'column', gap: '0.5rem', fontSize: '0.7rem', color: 'var(--text-muted)' }}>
             <span style={{ fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Engine Diagnostics</span>
             <div style={{ display: 'flex', justifyContent: 'space-between' }}>

@@ -119,15 +119,33 @@ def _run_agent_sync(user, incoming_text: str) -> str:
             "Whenever you want to check live market quotes, review SEC filings, or set price alerts, just send a message. Have a great day! 🚀"
         )
 
-    # 2. Natural Greetings & Chit-Chat
+    # 2. Welcoming Conversational Onboarding & Natural Greetings
     if text_lower in ["hi", "hello", "hey", "start", "/start", "good morning", "good evening", "gm", "yo", "sup", "hi atlas", "hey atlas"] or text_lower.startswith(("hi ", "hello ", "hey ")):
         overview = market.market_overview()
         lead_asset = overview[0] if overview else {"ticker": "NVDA", "price": 223.96, "change_pct": 2.27, "sparkline": "▂▃▅▇█ 🟢"}
         sign = "+" if lead_asset.get("change_pct", 0) >= 0 else ""
+        
+        user_facts = repo.get_facts(user.id)
+        user_watchlist = repo.get_watchlist(user.id)
+        
+        # New User Onboarding Greeting
+        if len(user_facts) == 0:
+            return (
+                f"Welcome! I'm **Atlas**, your senior executive financial assistant and market analyst. 🏛️\n\n"
+                f"Markets are active today (e.g. **{lead_asset['ticker']}** ${lead_asset['price']} {sign}{lead_asset['change_pct']}% {lead_asset.get('sparkline', '')}).\n\n"
+                f"To help me tailor intelligence and alerts to your exact workflow:\n"
+                f"• **What best describes your role?** (Investor, Equity Analyst, Founder, Finance Professional, Student)\n"
+                f"• **Which companies, sectors, or topics** would you like me to monitor for you?\n"
+                f"• **When should I deliver your daily market brief?** (Default is 08:00 AM local time)\n\n"
+                f"_(You can connect **Google Sheets**, **Google Calendar**, or **Gmail** anytime as we chat, or simply ask me any financial question right now to jump straight in!)_"
+            )
+            
+        # Returning User Greeting
+        wl_str = ", ".join(user_watchlist[:3]) if user_watchlist else "your portfolio"
         return (
             f"Hey! Good to see you. 👋\n\n"
-            f"Markets are active today (e.g. **{lead_asset['ticker']}** ${lead_asset['price']} {sign}{lead_asset['change_pct']}% {lead_asset.get('sparkline', '')}).\n\n"
-            f"What companies, sectors, or portfolio questions are on your radar?"
+            f"Markets are moving today (e.g. **{lead_asset['ticker']}** ${lead_asset['price']} {sign}{lead_asset['change_pct']}% {lead_asset.get('sparkline', '')}).\n\n"
+            f"I'm actively tracking **{wl_str}**. What companies, macro sectors, or financial reports are on your radar today?"
         )
 
     # 3. Conversational Check-ins
@@ -138,7 +156,7 @@ def _run_agent_sync(user, incoming_text: str) -> str:
         return (
             f"I'm doing great, thanks for asking! 🚀 Markets are active today "
             f"(e.g. **{lead_asset['ticker']}** ${lead_asset['price']} {sign}{lead_asset['change_pct']}% {lead_asset.get('sparkline', '')}).\n\n"
-            f"How can I assist you with your investments, stocks, or research today?"
+            f"How can I assist you with your investments, stocks, or financial research today?"
         )
 
     # 4. Capabilities & Help
@@ -158,16 +176,43 @@ def _run_agent_sync(user, incoming_text: str) -> str:
     explicit_tickers = _extract_tickers(incoming_text)
     active_ticker = explicit_tickers[0] if explicit_tickers else _find_recent_ticker_context(user.id)
     
-    # 6. Natural Executive Assistant Actions (Tracking, Alerts, Meetings, Scheduled Briefings)
-    if any(k in text_lower for k in ["track ", "start tracking", "follow "]) and active_ticker:
+    # 6. Natural Executive Assistant Actions & Progressive Profile Learning
+    # Role & Professional Identity
+    role_match = re.search(r"\b(?:i(?:'m| am)|working as|as an?)\s+(an?\s+)?([a-z\s\-]+(?:\binvestor|\banalyst|\bfounder|\btrader|\bprofessional|\bstudent|\bexecutive|\bmanager|\bconsultant|\bengineer))\b", text_lower)
+    if role_match:
+        extracted_role = role_match.group(2).strip().title()
+        repo.update_user(user.id, role=extracted_role)
+        repo.add_fact(user.id, f"User role: {extracted_role}")
+
+    # Sector & Adjacent Domain Interests
+    detected_domains = []
+    domain_keywords = {
+        "AI & Semiconductors": ["ai", "artificial intelligence", "semiconductor", "chips", "gpu", "nvda", "hardware"],
+        "Venture & Startups": ["startup", "early stage", "venture capital", "seed round", "vc", "founder"],
+        "Healthcare & Biotech": ["biotech", "pharma", "healthcare", "therapeutics", "fda"],
+        "Macro & Commodities": ["macro", "inflation", "fed", "interest rates", "oil", "gold", "treasuries"],
+        "Digital Assets & Crypto": ["crypto", "bitcoin", "ethereum", "defi", "solana"],
+        "Energy & Clean Tech": ["clean energy", "renewables", "solar", "nuclear", "ev"]
+    }
+    for dom_name, kw_list in domain_keywords.items():
+        if any(re.search(r"\b" + re.escape(kw) + r"\b", text_lower) for kw in kw_list):
+            detected_domains.append(dom_name)
+    if detected_domains:
+        dom_str = ", ".join(detected_domains)
+        repo.add_fact(user.id, f"User focus domains: {dom_str}")
+
+    # Watchlist & Stock Tracking
+    if any(k in text_lower for k in ["track ", "start tracking", "follow ", "monitor "]) and active_ticker:
         repo.add_to_watchlist(user.id, active_ticker)
         repo.create_alert(user.id, "filing", ticker=active_ticker)
         repo.add_fact(user.id, f"User is actively tracking {active_ticker}")
 
+    # Calendar & Meeting Scheduling
     if any(k in text_lower for k in ["schedule a meeting", "set up a meeting", "schedule meeting", "remind me to", "remind me tomorrow", "remind me one hour", "remind me before"]):
         repo.create_alert(user.id, "reminder", note=incoming_text)
         repo.add_fact(user.id, f"Scheduled reminder/meeting: '{incoming_text}'")
 
+    # Dynamic Catalyst Alerts
     if any(k in text_lower for k in ["alert if", "create alert", "set alert", "notify me if", "price alert", "notify me when"]):
         target = active_ticker or "NVDA"
         threshold = 5.0
@@ -177,11 +222,16 @@ def _run_agent_sync(user, incoming_text: str) -> str:
         repo.create_alert(user.id, "price_move", ticker=target, threshold_pct=threshold, note=incoming_text)
         repo.add_fact(user.id, f"Active price alert on {target} at ±{threshold:g}% threshold")
 
-    if any(k in text_lower for k in ["morning briefing", "daily briefing", "create a daily", "morning brief"]):
+    # Briefing Schedule & Timing Preference
+    time_match = re.search(r"\b(\d{1,2}(?::\d{2})?\s*(?:am|pm)?)\b", text_lower)
+    if any(k in text_lower for k in ["morning briefing", "daily briefing", "create a daily", "morning brief", "brief me at", "briefing at"]):
         topics = [w for w in ["AI", "Semiconductors", "Technology", "Crypto", "Energy", "Financials"] if w.lower() in text_lower]
         topic_str = ", ".join(topics) if topics else "Tech & AI"
         repo.add_fact(user.id, f"User requested customized morning briefing covering {topic_str}")
-        repo.update_user(user.id, briefing_time="08:00")
+        if time_match and any(b_kw in text_lower for b_kw in ["at", "time", "every"]):
+            repo.update_user(user.id, briefing_time=time_match.group(1).upper())
+        else:
+            repo.update_user(user.id, briefing_time="08:00")
 
     # 7. Build full multi-turn conversational memory (Redis cache + SQLite persistence)
     cached_turns = RedisService.get_cached_chat_history(user.id, limit=12)

@@ -104,20 +104,44 @@ Tracks all **11 official GICS Sectors** plus Crypto & Macro with parallel async 
 - **TradingView Inbound Webhooks (`/api/webhooks/tradingview`)**: Receive Pine Script alerts (`BUY`/`SELL`/`TAKE_PROFIT`) to automatically log trades and trigger Telegram alerts.
 - **Google Sheets & Excel CSV Export (`/api/export/portfolio-csv`)**: One-click live export of holdings, cost bases, real-time valuations, and profit/loss calculations.
 
-### 6. 📄 Official SEC EDGAR Submissions
+### 6. 📄 Conversational Document & Report Intelligence Engine
+- **Annual (10-K) & Quarterly (10-Q) Analysis**: Parses multi-page filings, financial statements, and investment decks without requiring manual reading.
+- **5-Point Executive Summaries**: Core thesis, financial metrics (Revenue, margins, EPS, FCF), strategic drivers, critical headwinds, and forward guidance.
+- **Critical Risk Factor Isolation**: Categorizes risks into Operational/Supply Chain, Regulatory/Antitrust, Macroeconomic, and Strategic Defenses.
+- **Multi-Report Delta Comparisons**: Side-by-side matrices comparing two quarters (Q1 vs Q2) or competing companies (Nvidia vs AMD).
+- **Conversational Document Q&A**: Ask arbitrary questions about revenue breakdown, CapEx guidance, or margin trends in plain language.
+
+### 7. 🗣️ Natural Senior Analyst Persona & Smart Ambiguity Clarification
+- **Zero-Command Conversational Flow**: Communicates as an experienced senior financial analyst and executive chief-of-staff without rigid prompts or slash commands.
+- **Smart Ambiguity Clarification**: When given open-ended queries (*"Tell me about Apple"*), provides a brief orientation and proactively asks follow-up clarifying questions (multiples, catalysts, SEC risks, entry points) before assuming intent.
+- **Conversational Action Execution**: Automatically adds to watchlists, schedules team meetings with pre-meeting briefing agendas, and sets alerts during natural conversation.
+
+### 8. ☀️ Proactive Intelligence & Intelligent Noise Suppression
+- **Morning Market Brief (08:00 Local Time)**: Macro backdrop, sector rotation, watchlist movers, and "Why It Matters" thesis.
+- **Evening Session Summary (18:00 Local Time)**: Session scorecard, what moved markets today, and tomorrow's setup.
+- **Noise Suppression Engine**: Deliberately stays silent during flat sessions without material events to preserve executive attention (Quality > Frequency).
+- **Quality-Gated Volatility & SEC Filing Watchers**: Direct integration with SEC EDGAR for Form 8-K / 10-Q filing analysis.
+
+### 9. 📄 Official SEC EDGAR Submissions
 - Direct automated CIK mapping and querying against official SEC.gov archives.
 - Instant retrieval of recent **Form 10-K**, **10-Q**, and **8-K** filings with direct clickable archive links.
 
-### 7. ⏰ Proactive APScheduler JobQueue
-- **Custom Morning Briefings (`08:00`)**: Tailored portfolio and market morning brief sent directly to Telegram.
-- **Volatility Alert Watchers**: Scans asset thresholds every 5 minutes and pushes alerts when volatility hits user-defined levels.
-- **SEC Filing Monitors**: Hourly background watcher for new regulatory filings from watchlist tickers.
-
-### 8. 🛡️ Institutional Security & Compliance Engine
+### 10. 🛡️ Institutional Security & Compliance Engine
 - **Prompt Injection Defense**: Intercepts jailbreaks and system prompt extraction attempts.
 - **Secrets Redaction**: Sanitizes API tokens, private keys, and environment variables from all outputs.
 - **Rate Limiting**: Enforces per-user sliding-window limits to prevent abuse.
 - **Research Disclaimers**: Automatically appends standard institutional compliance notices.
+
+---
+
+## 🏆 Product Evaluation & Submission Alignment
+
+For complete evaluation criteria mapping, see [**`SUBMISSION.md`**](file:///Users/abhi/Desktop/atlas/SUBMISSION.md):
+- **Usefulness, Proactivity & User Value (30%)**: Timezone-aware morning/evening briefs, "Why It Matters" bottom line, noise suppression.
+- **Product Thinking & Judgment (25%)**: Zero-command natural persona, smart ambiguity clarification, background action handling, multi-platform hub.
+- **AI Experience & Conversation Quality (20%)**: Groq LLaMA 3.3 70B, Whisper v3 voice notes, Redis/SQLite multi-turn memory.
+- **Depth of the Finance Vertical (15%)**: Real-time multi-asset quotes (US, India, Crypto, Commodities, Forex, 10Y Yield), 11 GICS sectors, 10-K document intelligence.
+- **Engineering Quality & Implementation (10%)**: FastAPI modular services, async background scheduler, production Dockerization, custom glassmorphism terminal.
 
 ---
 

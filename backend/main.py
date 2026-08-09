@@ -16,7 +16,7 @@ from backend.db import repo
 from backend.agent.core import handle_user_message
 from backend.bot import handlers
 from backend.scheduler.jobs import register_jobs
-from backend.services import market, sectors, integrations
+from backend.services import market, sectors, integrations, proactive, edgar
 from backend.services.integrations import PlatformIntegrationHub
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(name)s: %(message)s")
@@ -173,6 +173,68 @@ def flush_redis():
     if keys:
         client.delete(*keys)
     return {"status": "success", "flushed_keys": len(keys)}
+
+class BriefTriggerRequest(BaseModel):
+    telegram_id: Optional[int] = 1001
+    brief_type: Optional[str] = "morning"  # "morning" or "evening"
+    force: Optional[bool] = False
+
+@app.post("/api/brief/trigger")
+def trigger_brief_api(req: BriefTriggerRequest):
+    """Generates and returns an executive Morning Market Brief or Evening Summary with 'Why It Matters' synthesis."""
+    user = repo.get_or_create_user(req.telegram_id, "Analyst")
+    if req.brief_type == "evening":
+        content = proactive.generate_evening_summary(user)
+    else:
+        content = proactive.generate_morning_brief(user)
+        
+    return {
+        "sent": True,
+        "type": req.brief_type,
+        "content": content,
+        "generated_at": datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S UTC")
+    }
+
+class CatalystCheckRequest(BaseModel):
+    ticker: str
+    threshold_pct: Optional[float] = 3.0
+
+@app.post("/api/proactive/catalyst-check")
+def check_catalyst_api(req: CatalystCheckRequest):
+    """Quality-gated catalyst & earnings watcher: returns detailed 'Why It Matters' analysis or remains SILENT if noise."""
+    result = proactive.evaluate_material_catalyst(req.ticker, threshold_pct=req.threshold_pct)
+    return {
+        "ticker": req.ticker,
+        "material_event_found": result is not None,
+        "alert": result,
+        "status": "alert_generated" if result else "silent_no_material_event"
+    }
+
+class FilingCheckRequest(BaseModel):
+    ticker: str
+
+@app.post("/api/proactive/sec-filing-check")
+def check_filing_api(req: FilingCheckRequest):
+    """Evaluates official SEC Form 8-K / 10-Q disclosures with balance-sheet & catalyst dissection."""
+    filings = edgar.recent_filings(req.ticker, limit=1)
+    if not filings:
+        return {"ticker": req.ticker, "filing_found": False, "analysis": None}
+    
+    latest = filings[0]
+    analysis = proactive.analyze_sec_regulatory_event(
+        req.ticker,
+        latest["form"],
+        latest["date"],
+        latest["description"],
+        latest["url"]
+    )
+    return {
+        "ticker": req.ticker,
+        "filing_found": True,
+        "form": latest["form"],
+        "date": latest["date"],
+        "analysis": analysis
+    }
 
 @app.get("/api/database/snapshots")
 def get_db_snapshots(limit: int = 15):

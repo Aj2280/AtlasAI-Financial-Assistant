@@ -48,7 +48,17 @@ def read_root():
         "service": "Atlas AI Conversational Financial Analyst",
         "status": "online",
         "version": "2.0",
+        "bot": "@Atlas39bot",
         "architecture": "Telegram + SQLAlchemy + JobQueue + Finnhub + OpenRouter + SEC EDGAR"
+    }
+
+@app.get("/health")
+def health_check():
+    return {
+        "status": "healthy",
+        "service": "Atlas AI Conversational Financial Analyst",
+        "bot": "@Atlas39bot",
+        "timestamp": datetime.utcnow().isoformat()
     }
 
 @app.post("/api/chat")
@@ -516,4 +526,7 @@ async def on_startup():
     asyncio.create_task(start_telegram_bot())
 
 if __name__ == "__main__":
-    uvicorn.run(app, host="127.0.0.1", port=8000)
+    port = int(os.environ.get("PORT", 8000))
+    host = os.environ.get("HOST", "0.0.0.0")
+    log.info(f"Starting Atlas FastAPI server on {host}:{port}...")
+    uvicorn.run(app, host=host, port=port)

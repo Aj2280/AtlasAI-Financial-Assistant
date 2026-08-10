@@ -1,4 +1,9 @@
+import sys
 import os
+
+# Ensure root directory is always on sys.path
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+
 import asyncio
 import logging
 from datetime import datetime

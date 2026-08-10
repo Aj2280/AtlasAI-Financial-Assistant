@@ -122,11 +122,9 @@ async def reminder_tick(context: ContextTypes.DEFAULT_TYPE) -> None:
                 await _send_markdown(context.application, user.tg_id, f"⏰ **Scheduled Alert & Reminder**\n\n{al.note}")
 
 def register_jobs(app: Application) -> None:
-    """Registers proactive intelligence jobs with APScheduler JobQueue."""
+    """Registers only user-explicit reminders to eliminate unsolicited noise/alerts."""
     jq = app.job_queue
     if jq:
-        jq.run_repeating(briefing_tick, interval=60, first=10)
-        jq.run_repeating(reminder_tick, interval=60, first=15)
-        jq.run_repeating(price_alert_tick, interval=300, first=30)
-        jq.run_repeating(filing_tick, interval=3600, first=60)
-        log.info("Proactive Intelligent JobQueue registered successfully.")
+        # Keep only user-explicit requested reminders (quiet mode)
+        jq.run_repeating(reminder_tick, interval=60, first=30)
+        log.info("Quiet JobQueue registered: unsolicited alerts disabled. Atlas will respond strictly when user initiates conversation.")

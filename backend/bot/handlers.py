@@ -105,7 +105,7 @@ async def on_voice(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     await _reply(update, reply)
 
 async def on_photo(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    """Download photo and analyze with OpenRouter vision model."""
+    """Download photo and analyze with OpenRouter vision model, persisting to memory."""
     user = _get_user(update)
     await _typing(update, context)
     try:
@@ -117,6 +117,10 @@ async def on_photo(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
             caption = update.effective_message.caption or ""
             vision_result = media.analyze_image(image_bytes, caption)
             if vision_result:
+                repo.save_document(user.id, "chart", f"Chart: {caption or 'Financial Setup'}", vision_result)
+                repo.add_fact(user.id, f"Recent Chart Upload: {vision_result[:120]}")
+                repo.add_message(user.id, "user", f"[Uploaded Chart Image] {caption}")
+                repo.add_message(user.id, "assistant", vision_result)
                 await _reply(update, f"🖼️ <b>Chart & Vision Analysis</b>\n\n{vision_result}")
                 return
     except Exception as e:

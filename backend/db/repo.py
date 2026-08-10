@@ -219,21 +219,41 @@ def get_portfolio_holdings(user_id: int) -> List[PortfolioHolding]:
         return db.query(PortfolioHolding).filter(PortfolioHolding.user_id == user_id).all()
 
 def auto_extract_and_persist_facts(user_id: int, message_text: str) -> None:
-    """Analyzes message for user facts (holdings, investment horizons, preferences) and saves to local database."""
+    """Analyzes message for user facts (name, role, holdings, preferences, explicit notes) and saves to persistent database."""
     text_lower = message_text.lower()
+
+    # 1. Explicit remember requests ("Remember that...", "Note that...")
+    rem_match = re.search(r"\b(?:remember|note that|keep in mind that|save fact)\s+(.+)$", message_text, re.IGNORECASE)
+    if rem_match:
+        add_fact(user_id, f"User Note: {rem_match.group(1).strip()}")
+
+    # 2. Name extraction ("My name is Abhishek", "I am Abhishek")
+    name_match = re.search(r"\b(?:my name is|i am|call me)\s+([A-Za-z]{2,20})\b", message_text, re.IGNORECASE)
+    if name_match:
+        cand_name = name_match.group(1).title()
+        if cand_name.lower() not in ["an", "a", "the", "looking", "interested", "tracking", "holding"]:
+            add_fact(user_id, f"User name: {cand_name}")
+            update_user(user_id, name=cand_name)
+
+    # 3. Role extraction ("I am an investor", "I am a founder", "I'm a financial analyst")
+    for role_kw in ["investor", "equity analyst", "founder", "student", "finance professional", "trader", "engineer", "venture capitalist", "portfolio manager"]:
+        if re.search(r"\b" + re.escape(role_kw) + r"\b", text_lower):
+            add_fact(user_id, f"User role: {role_kw.title()}")
+            update_user(user_id, role=role_kw.title())
+            break
     
-    # 1. Holding detection
+    # 4. Holding detection
     holding_match = re.search(r"\b(?:i have|i hold|i bought|holding|bought|own)\s+(\d+(?:\.\d+)?)\s+(?:shares of\s+)?([A-Za-z]{2,5})\b", message_text, re.IGNORECASE)
     if holding_match:
         shares = float(holding_match.group(1))
         ticker = holding_match.group(2).upper()
-        if ticker not in ["THE", "FOR", "AND", "SOME", "MORE", "THAT"]:
+        if ticker not in ["THE", "FOR", "AND", "SOME", "MORE", "THAT", "TECH", "STOCK", "SHARE"]:
             fact = f"User holds {shares:g} shares of {ticker}"
             add_fact(user_id, fact)
             save_portfolio_holding(user_id, ticker, shares, 0.0, notes="Auto-extracted from conversation")
             add_to_watchlist(user_id, ticker)
 
-    # 2. Risk appetite
+    # 5. Risk appetite
     if any(k in text_lower for k in ["risk tolerance", "conservative", "aggressive", "moderate risk", "low risk", "high risk"]):
         if "conservative" in text_lower or "low risk" in text_lower:
             add_fact(user_id, "User has a conservative, low-risk investment style")
@@ -242,7 +262,7 @@ def auto_extract_and_persist_facts(user_id: int, message_text: str) -> None:
         elif "moderate" in text_lower:
             add_fact(user_id, "User prefers a balanced, moderate-risk approach")
 
-    # 3. Horizon
+    # 6. Horizon
     if any(k in text_lower for k in ["long-term", "long term", "5 years", "10 years", "retirement"]):
         add_fact(user_id, "User has a long-term multi-year investment horizon")
     elif any(k in text_lower for k in ["short-term", "short term", "day trade", "swing trade", "scalp"]):

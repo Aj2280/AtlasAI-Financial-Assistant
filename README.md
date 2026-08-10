@@ -5,7 +5,7 @@
 **Autonomous Financial Intelligence Delivered Exclusively via Telegram ([@Atlas39bot](https://t.me/Atlas39bot))**
 
 [![Telegram Bot](https://img.shields.io/badge/Telegram%20Bot-@Atlas39bot-2CA5E0.svg?logo=telegram&logoColor=white)](https://t.me/Atlas39bot)
-[![Render Deployment](https://img.shields.io/badge/Render-Hosted%2024%2F7-46E3B7.svg?logo=render&logoColor=white)](https://dashboard.render.com)
+[![Demo Video](https://img.shields.io/badge/Demo%20Video-Google%20Drive-FF8800.svg?logo=googledrive&logoColor=white)](https://drive.google.com/file/d/1Zeie6x35m0XK3NmTJkSDsfvZ_06Qob6Q/view?usp=sharing)
 [![Python 3.9+](https://img.shields.io/badge/Python-3.9%2B-3776AB.svg?logo=python&logoColor=white)](https://www.python.org/)
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.100%2B-009688.svg?logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com/)
 [![Groq Llama 3.3](https://img.shields.io/badge/Groq-LLaMA%203.3%2070B-F55036.svg)](https://groq.com/)

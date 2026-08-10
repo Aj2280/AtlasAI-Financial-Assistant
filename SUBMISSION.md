@@ -5,6 +5,15 @@
 
 ---
 
+## 🔗 Official Project Links
+
+* **💻 GitHub Repository:** [https://github.com/Aj2280/AtlasAI-Financial-Assistant](https://github.com/Aj2280/AtlasAI-Financial-Assistant)
+* **🤖 Live Telegram Bot:** [https://t.me/Atlas39bot](https://t.me/Atlas39bot)
+* **🎥 Demo Video:** [https://drive.google.com/file/d/1Zeie6x35m0XK3NmTJkSDsfvZ_06Qob6Q/view?usp=sharing](https://drive.google.com/file/d/1Zeie6x35m0XK3NmTJkSDsfvZ_06Qob6Q/view?usp=sharing)
+* **👨‍💻 Developer:** Abhishek Jadhav ([@Aj2280](https://github.com/Aj2280))
+
+---
+
 ## 📊 Evaluation Matrix & Executive Summary
 
 | Evaluation Criterion | Weight | Atlas Implementation Highlights | Grade |

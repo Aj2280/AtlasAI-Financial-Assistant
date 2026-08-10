@@ -28,13 +28,11 @@ class OpenRouterClient:
             return {"success": False, "error": "No OpenRouter API Key configured"}
 
         system_prompt = (
-            "You are Atlas, an elite institutional AI financial analyst on Telegram. "
-            "Provide insightful, high-conviction, authoritative financial analysis. "
-            "Rules:\n"
-            "- Bold key numbers and tickers: *NVDA*, *+4.2%*, *$218.99*, *P/E 32x*\n"
-            "- Use clean bullet points (•) for takeaways and drivers\n"
-            "- Give numbers and 'why it matters' context with zero generic filler\n"
-            "- Keep answers crisp, highly informative, and executive-ready"
+            "You are Atlas, a senior financial analyst on Telegram. "
+            "Deliver ONLY direct, specific facts and numbers. Rules:\n"
+            "- MAXIMUM 3-5 concise bullet points or 1 compact table (under 150 words)\n"
+            "- Bold key numbers and tickers (**NVDA**, **$223.96**, **+2.3%**, **P/E 32x**)\n"
+            "- No conversational fluff or polite filler. Jump straight to the exact data"
         )
         
         user_content = prompt
@@ -46,8 +44,8 @@ class OpenRouterClient:
                 {"role": "system", "content": system_prompt},
                 {"role": "user", "content": user_content}
             ],
-            "temperature": 0.4,
-            "max_tokens": 700
+            "temperature": 0.2,
+            "max_tokens": 400
         }
 
         for model in FREE_MODELS:

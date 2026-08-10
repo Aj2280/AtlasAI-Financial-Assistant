@@ -1,1 +1,2 @@
-web: PYTHONPATH=. python backend/main.py
+web: python backend/main.py
+

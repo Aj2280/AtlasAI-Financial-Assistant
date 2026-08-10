@@ -1,0 +1,83 @@
+🤖 ATLAS — AI-Powered Financial Assistant on Telegram
+📌 Hackathon Project Submission
+👨‍💻 Developer: Abhishek Jadhav (@Aj2280)
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+🔷 WHAT IS ATLAS?
+
+ATLAS is an institutional-grade, AI-powered Financial Assistant that lives natively inside Telegram and acts like a personal financial analyst available 24/7.
+
+Instead of switching between multiple apps for stocks, SEC filings, earnings reports, spreadsheets, and alerts, ATLAS brings everything into a single natural Telegram conversation — powered by an intelligent multi-model AI routing engine.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+✨ MAIN FEATURES
+
+1️⃣ Natural Conversational AI 🗣️
+Talk naturally without slash commands or menus. Includes Smart Ambiguity Clarification.
+
+2️⃣ Live Market Data & Sparklines 📈
+Real-time quotes and valuation metrics for US Tech, Indian Equities (INR), Crypto, and Commodities.
+
+3️⃣ Deep Valuation & Peer Comparisons 🔍
+Compare growth, EBITDA, forward P/E, and moats via LLaMA 3.3 70B.
+
+4️⃣ Real-Time News ("Why It Matters") 📰
+Live market catalysts with economic transmission breakdown.
+
+5️⃣ Official SEC Filing Intelligence 📑
+Form 10-K, 10-Q, and 8-K filings with direct SEC.gov archive links.
+
+6️⃣ PDF Document Intelligence 🌟
+Upload an annual report → get a 5-point executive summary & categorized risk breakdown.
+
+7️⃣ Google Sheets Financial Modeling 📊
+Paste any Google Sheet link → calculates totals, anomalies, and trend shifts.
+
+8️⃣ Chart Vision & Financial OCR 🖼️
+Upload stock charts or financial tables → analyzes key levels using AI vision.
+
+9️⃣ Voice Message Support 🎙️
+Sub-second audio transcription via Groq Whisper Large v3.
+
+🔟 Precision Manual Alerts 🔔
+Explicit-only price move triggers and calendar reminders without spam.
+
+1️⃣1️⃣ Personalized Daily Briefing ☀️
+Timezone-aware morning briefs (08:00) and evening market wraps.
+
+1️⃣2️⃣ Persistent Two-Tier Memory 🧠
+Redis L1 cache + SQLite WAL database for multi-turn user context.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+🤖 MULTI-MODEL AI ARCHITECTURE
+
+• Research & Valuation: LLaMA 3.3 70B Versatile — Groq 🧠
+• Fast Chat: LLaMA 3.1 8B Instant — Groq ⚡
+• Voice AI: Whisper Large v3 — Groq 🎙️
+• Vision OCR: Gemma 4 26B — OpenRouter 🖼️
+• Failover: Cerebras gpt-oss-120b 🔄
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+🛠️ TECHNOLOGIES USED
+
+• Language: Python 3.10
+• Platform: Telegram Bot API (python-telegram-bot)
+• AI Engines: Groq LLaMA 3.3 70B & LLaMA 3.1 8B
+• Voice AI: Groq Whisper Large v3
+• Vision AI: Gemma 4 26B via OpenRouter
+• Market Data: Finnhub Real-Time API, CoinGecko
+• SEC Filings: SEC.gov EDGAR Official Archive
+• PDF Parsing: pypdf Text Extraction Engine
+• Database & Cache: SQLite WAL + Redis L1 Cache Store
+• Cloud Hosting: Render.com 24/7 Background Daemon
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+🤖 Live Bot: @Atlas39bot
+👨‍💻 Created by: Abhishek Jadhav
+
+https://github.com/Aj2280/Atlas-AI-Financial-Assistant-

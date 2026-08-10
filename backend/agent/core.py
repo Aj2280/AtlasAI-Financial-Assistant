@@ -201,26 +201,25 @@ def _run_agent_sync(user, incoming_text: str) -> str:
         dom_str = ", ".join(detected_domains)
         repo.add_fact(user.id, f"User focus domains: {dom_str}")
 
-    # Watchlist & Stock Tracking
-    if any(k in text_lower for k in ["track ", "start tracking", "follow ", "monitor "]) and active_ticker:
+    # Watchlist & Stock Tracking (Manual Watchlist only, no auto alerts)
+    if any(k in text_lower for k in ["track ", "start tracking", "follow ", "add to watchlist", "monitor "]) and active_ticker:
         repo.add_to_watchlist(user.id, active_ticker)
-        repo.create_alert(user.id, "filing", ticker=active_ticker)
-        repo.add_fact(user.id, f"User is actively tracking {active_ticker}")
+        repo.add_fact(user.id, f"User is tracking {active_ticker}")
 
-    # Calendar & Meeting Scheduling
-    if any(k in text_lower for k in ["schedule a meeting", "set up a meeting", "schedule meeting", "remind me to", "remind me tomorrow", "remind me one hour", "remind me before"]):
+    # Explicit Manual Reminders (Only on explicit user request)
+    if any(k in text_lower for k in ["set reminder", "create reminder", "remind me to", "remind me tomorrow", "remind me at", "schedule a meeting", "schedule meeting"]):
         repo.create_alert(user.id, "reminder", note=incoming_text)
-        repo.add_fact(user.id, f"Scheduled reminder/meeting: '{incoming_text}'")
+        repo.add_fact(user.id, f"Manual reminder set: '{incoming_text}'")
 
-    # Dynamic Catalyst Alerts
-    if any(k in text_lower for k in ["alert if", "create alert", "set alert", "notify me if", "price alert", "notify me when"]):
+    # Explicit Manual Price Alerts (Only when user explicitly tells 'set alert' or 'alert me')
+    if any(k in text_lower for k in ["set alert", "create alert", "set price alert", "alert me if", "alert me when", "notify me if", "notify me when"]):
         target = active_ticker or "NVDA"
         threshold = 5.0
         pct_match = re.search(r"(\d+(\.\d+)?)%", incoming_text)
         if pct_match:
             threshold = float(pct_match.group(1))
         repo.create_alert(user.id, "price_move", ticker=target, threshold_pct=threshold, note=incoming_text)
-        repo.add_fact(user.id, f"Active price alert on {target} at ±{threshold:g}% threshold")
+        repo.add_fact(user.id, f"Manual alert set on {target} at ±{threshold:g}% threshold")
 
     # Briefing Schedule & Timing Preference
     time_match = re.search(r"\b(\d{1,2}(?::\d{2})?\s*(?:am|pm)?)\b", text_lower)

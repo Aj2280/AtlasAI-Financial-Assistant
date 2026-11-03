@@ -75,7 +75,7 @@
 
 Atlas begins with a natural conversation—**not a lengthy registration form**.
 
-1. **First Interaction**: Greets the user with a live market backdrop and asks 2-3 simple questions to understand their role (**Investor, Equity Analyst, Founder, Finance Pro, Student**) and focus sectors (**AI, Crypto, Biotech, Macro**).
+1. **First Interaction**: Greets the user with a live market backdrop and asks 2-3 simple questions to understand their role (*Investor, Equity Analyst, Founder, Finance Pro, Student**) and focus sectors (**AI, Crypto, Biotech, Macro*).
 2. **Natural Integrations**: Organically introduces **Google Sheets**, **Google Calendar**, and **Gmail** when relevant to the workflow.
 3. **100% Skippable**: Users can ask any direct market question immediately to bypass onboarding.
 4. **Progressive Learning**: Silently remembers preferences, watchlist tickers, and briefing times across sessions.
